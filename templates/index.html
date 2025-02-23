@@ -85,12 +85,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Initialize TipTap editor
-        const editor = new window.tiptap.Editor({
+        // Initialize TipTap editor using the correct global variables
+        const editor = new Editor({
             element: document.querySelector('#editor'),
             extensions: [
-                window.tiptap.StarterKit,
-                window.tiptap.Underline
+                StarterKit.configure({
+                    history: true,
+                }),
+                Underline
             ],
             content: '',
             onUpdate: ({ editor }) => {
@@ -102,7 +104,6 @@
         document.querySelectorAll('[data-format]').forEach(button => {
             button.addEventListener('click', () => {
                 const format = button.dataset.format;
-                editor.chain().focus();
                 if (format === 'bold') editor.chain().focus().toggleBold().run();
                 else if (format === 'italic') editor.chain().focus().toggleItalic().run();
                 else if (format === 'underline') editor.chain().focus().toggleUnderline().run();
