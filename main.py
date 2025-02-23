@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from bs4 import BeautifulSoup
 import re
 import os
 import logging
@@ -18,6 +19,30 @@ ITALIC_MAP.update({chr(ord('a') + i): chr(0x1D44E + i) for i in range(26)})
 def apply_style(text, style_map):
     """Apply Unicode style mapping to text"""
     return ''.join(style_map.get(c, c) for c in text)
+
+def parse_html_format(html_content):
+    """Parse HTML and apply formatting"""
+    try:
+        soup = BeautifulSoup(html_content, 'html.parser')
+        result = []
+
+        for element in soup.descendants:
+            if isinstance(element, str) and element.strip():
+                text = element.strip()
+                parent_tags = [p.name for p in element.parents]
+
+                # Apply formatting based on parent tags
+                if 'strong' in parent_tags or 'b' in parent_tags:
+                    text = apply_style(text, BOLD_MAP)
+                if 'em' in parent_tags or 'i' in parent_tags:
+                    text = apply_style(text, ITALIC_MAP)
+
+                result.append(text)
+
+        return " ".join(result).strip()
+    except Exception as e:
+        logging.error(f"Error parsing HTML: {str(e)}")
+        raise
 
 def format_text(text):
     """Format text with bold and italic styles"""
@@ -50,8 +75,16 @@ def index():
 
 @app.route('/format', methods=['POST'])
 def format_text_endpoint():
-    text = request.json.get('text', '')
-    return jsonify(format_text(text))
+    try:
+        content = request.json.get('text', '')
+        if not content:
+            return jsonify({"text": ""})
+
+        formatted_text = parse_html_format(content)
+        return jsonify({"text": formatted_text})
+    except Exception as e:
+        logging.error(f"Error in format_text_endpoint: {str(e)}")
+        return jsonify({"error": "An error occurred while formatting the text"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

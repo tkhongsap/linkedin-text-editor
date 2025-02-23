@@ -7,35 +7,37 @@
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    <!-- TipTap Dependencies -->
+    <script src="https://unpkg.com/@tiptap/core@2.1.12"></script>
+    <script src="https://unpkg.com/@tiptap/starter-kit@2.1.12"></script>
+    <script src="https://unpkg.com/@tiptap/pm@2.1.12"></script>
 </head>
 <body>
     <div class="container py-4">
         <header class="text-center mb-5">
             <h1 class="display-4">LinkedIn Text Formatter</h1>
-            <p class="lead">Format your LinkedIn posts with beautiful typography</p>
+            <p class="lead">Format your text with beautiful typography for LinkedIn</p>
         </header>
 
         <div class="row g-4">
             <div class="col-md-6">
                 <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Input Text</h5>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Editor</h5>
+                        <div class="btn-group" role="group" aria-label="Formatting options">
+                            <button type="button" class="btn btn-secondary" data-format="bold" title="Bold">
+                                <i class="bi bi-type-bold"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-format="italic" title="Italic">
+                                <i class="bi bi-type-italic"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-format="underline" title="Underline">
+                                <i class="bi bi-type-underline"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <div class="formatting-guide mb-3">
-                            <p class="small text-muted">
-                                Use these markers to format your text:
-                                <br>
-                                <code>*text*</code> for 𝐛𝐨𝐥𝐝
-                                <br>
-                                <code>_text_</code> for 𝑖𝑡𝑎𝑙𝑖𝑐
-                            </p>
-                        </div>
-                        <textarea 
-                            id="inputText" 
-                            class="form-control" 
-                            rows="10" 
-                            placeholder="Type or paste your text here...&#10;Example: Hello *world*! This is _important_."></textarea>
+                        <div id="editor" class="form-control editor-content"></div>
                     </div>
                 </div>
             </div>
@@ -44,7 +46,7 @@
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Preview</h5>
-                        <button id="copyButton" class="btn btn-secondary btn-sm" disabled>
+                        <button id="copyButton" class="btn btn-secondary" disabled>
                             <i class="bi bi-clipboard"></i> Copy
                         </button>
                     </div>

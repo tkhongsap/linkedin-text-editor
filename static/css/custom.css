@@ -8,9 +8,15 @@
     word-wrap: break-word;
 }
 
-textarea.form-control {
-    font-family: monospace;
-    resize: vertical;
+.editor-content {
+    min-height: 200px;
+    font-family: var(--bs-font-monospace);
+    resize: none;
+    background-color: var(--bs-dark);
+}
+
+.editor-content p {
+    margin-bottom: 0.5rem;
 }
 
 .formatting-guide {
@@ -18,7 +24,26 @@ textarea.form-control {
     padding-left: 1rem;
 }
 
-/* Animation for copy button */
+/* TipTap editor styles */
+.ProseMirror {
+    outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: var(--bs-secondary-color);
+    pointer-events: none;
+    height: 0;
+}
+
+/* Button states */
+.btn[data-format].active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* Copy button animation */
 .copy-success {
     background-color: var(--bs-success) !important;
     transition: background-color 0.3s ease;
@@ -29,8 +54,23 @@ textarea.form-control {
     .container {
         padding: 1rem;
     }
-    
-    .preview-text {
+
+    .preview-text,
+    .editor-content {
         min-height: 150px;
     }
+
+    .btn-group {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .btn-group .btn {
+        flex: 1;
+    }
+}
+
+textarea.form-control {
+    font-family: monospace;
+    resize: vertical;
 }

@@ -1,35 +1,55 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const inputText = document.getElementById('inputText');
+    const editor = new Editor({
+        element: document.querySelector('#editor'),
+        extensions: [
+            StarterKit
+        ],
+        content: '',
+        editorProps: {
+            attributes: {
+                class: 'form-control editor-content',
+                'data-placeholder': 'Type or paste your text here...\nExample: Apply formatting using the buttons above.'
+            }
+        }
+    });
+
     const previewArea = document.getElementById('previewArea');
     const copyButton = document.getElementById('copyButton');
     const errorMessage = document.getElementById('errorMessage');
     let formatTimeout;
 
-    // Format text when input changes
-    inputText.addEventListener('input', function() {
+    // Format buttons click handlers
+    document.querySelectorAll('[data-format]').forEach(button => {
+        button.addEventListener('click', () => {
+            const format = button.dataset.format;
+            editor.chain().focus()[`toggle${format.charAt(0).toUpperCase() + format.slice(1)}`]().run();
+            updateFormatButtonStates();
+            formatText();
+        });
+    });
+
+    // Update format button states based on current selection
+    function updateFormatButtonStates() {
+        document.querySelectorAll('[data-format]').forEach(button => {
+            const format = button.dataset.format;
+            const isActive = editor.isActive(format);
+            button.classList.toggle('active', isActive);
+        });
+    }
+
+    // Editor change handler
+    editor.on('update', () => {
         clearTimeout(formatTimeout);
         formatTimeout = setTimeout(formatText, 300);
     });
 
-    // Copy button functionality
-    copyButton.addEventListener('click', async function() {
-        try {
-            await navigator.clipboard.writeText(previewArea.textContent);
-            copyButton.classList.add('copy-success');
-            copyButton.innerHTML = '<i class="bi bi-check"></i> Copied!';
-            setTimeout(() => {
-                copyButton.classList.remove('copy-success');
-                copyButton.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
-            }, 2000);
-        } catch (err) {
-            showError('Failed to copy text. Please try selecting and copying manually.');
-        }
+    editor.on('selectionUpdate', () => {
+        updateFormatButtonStates();
     });
 
     function formatText() {
-        const text = inputText.value.trim();
-        
-        if (!text) {
+        const content = editor.getHTML();
+        if (!content || content === '<p></p>') {
             previewArea.textContent = 'Your formatted text will appear here...';
             copyButton.disabled = true;
             hideError();
@@ -41,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ text: text })
+            body: JSON.stringify({ text: content })
         })
         .then(response => response.json())
         .then(data => {
@@ -60,6 +80,21 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
         });
     }
+
+    // Copy button functionality
+    copyButton.addEventListener('click', async function() {
+        try {
+            await navigator.clipboard.writeText(previewArea.textContent);
+            copyButton.classList.add('copy-success');
+            copyButton.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            setTimeout(() => {
+                copyButton.classList.remove('copy-success');
+                copyButton.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+            }, 2000);
+        } catch (err) {
+            showError('Failed to copy text. Please try selecting and copying manually.');
+        }
+    });
 
     function showError(message) {
         errorMessage.textContent = message;
