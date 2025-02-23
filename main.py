@@ -39,6 +39,7 @@ HTML_TEMPLATE = """
 <html>
 <head>
     <title>LinkedIn Text Formatter</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <style>
         body {
             font-family: Arial, sans-serif;
