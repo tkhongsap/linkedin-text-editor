@@ -99,7 +99,7 @@ HTML_TEMPLATE = """
             <p><em>Note: Ensure markers are properly closed and do not nest them.</em></p>
         </div>
         <form method="post">
-            <textarea name="text" rows="10" placeholder="e.g., Hello *world*! This is _important_."></textarea><br>
+            <textarea name="text" rows="10" placeholder="e.g., Hello *world*! This is _important_." {% if request.form.get('text') %}value="{{ request.form.get('text') }}"{% endif %}>{{ request.form.get('text', '') }}</textarea><br>
             <button type="submit">Preview</button>
         </form>
         {% if formatted_text %}
