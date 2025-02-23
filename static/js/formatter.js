@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const editor = new Editor({
+    const editor = new window.Tiptap.Editor({
         element: document.querySelector('#editor'),
         extensions: [
-            StarterKit
+            window.Tiptap.StarterKit,
+            window.TiptapUnderline.Underline
         ],
         content: '',
         editorProps: {
