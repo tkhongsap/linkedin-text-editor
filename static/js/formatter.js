@@ -1,9 +1,11 @@
+import { Editor, StarterKit, Underline } from 'tiptap'; // Assumed import statement
+
 document.addEventListener('DOMContentLoaded', function() {
-    const editor = new TiptapCore.Editor({
+    const editor = new Editor({
         element: document.querySelector('#editor'),
         extensions: [
-            TiptapStarterKit.StarterKit,
-            TiptapExtensionUnderline.Underline
+            StarterKit,
+            Underline
         ],
         content: '',
         editable: true,
