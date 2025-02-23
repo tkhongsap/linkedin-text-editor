@@ -98,26 +98,51 @@ HTML_TEMPLATE = """
             <p>Use * for bold and _ for italic. For example: This is *bold* and this is _italic_.</p>
             <p><em>Note: Ensure markers are properly closed and do not nest them.</em></p>
         </div>
-        <form method="post">
-            <textarea name="text" rows="10" placeholder="e.g., Hello *world*! This is _important_." {% if request.form.get('text') %}value="{{ request.form.get('text') }}"{% endif %}>{{ request.form.get('text', '') }}</textarea><br>
+        <form id="formatterForm" method="post">
+            <textarea name="text" id="inputText" rows="10" placeholder="e.g., Hello *world*! This is _important_." {% if request.form.get('text') %}value="{{ request.form.get('text') }}"{% endif %}>{{ request.form.get('text', '') }}</textarea><br>
             <button type="submit">Preview</button>
         </form>
-        {% if formatted_text %}
+        <div id="previewSection" {% if not formatted_text %}style="display: none"{% endif %}>
             <h2>Preview:</h2>
-            <pre id="preview">{{ formatted_text }}</pre>
+            <pre id="preview">{{ formatted_text or '' }}</pre>
             <button onclick="copyToClipboard()">Copy to Clipboard</button>
             <p><i>Note: If the copy button doesn't work, manually select and copy the text above.</i></p>
-            <script>
-                function copyToClipboard() {
-                    var text = document.getElementById('preview').textContent;
-                    navigator.clipboard.writeText(text).then(function() {
-                        alert('Copied to clipboard!');
-                    }, function(err) {
-                        alert('Failed to copy: ' + err);
-                    });
-                }
-            </script>
-        {% endif %}
+        </div>
+        <script>
+            document.getElementById('formatterForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+                fetch('/', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(html => {
+                    // Parse the response HTML to extract the formatted text
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const formattedText = doc.getElementById('preview').textContent;
+
+                    // Update the preview section
+                    document.getElementById('preview').textContent = formattedText;
+                    document.getElementById('previewSection').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while formatting the text.');
+                });
+            });
+
+            function copyToClipboard() {
+                var text = document.getElementById('preview').textContent;
+                navigator.clipboard.writeText(text).then(function() {
+                    alert('Copied to clipboard!');
+                }, function(err) {
+                    alert('Failed to copy: ' + err);
+                });
+            }
+        </script>
     </div>
 </body>
 </html>
