@@ -8,11 +8,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <!-- TipTap Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.12/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/pm@2.1.12/state/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/pm@2.1.12/view/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.1.12/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-underline@2.1.12/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.12/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.1.12/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-underline@2.1.12/dist/index.umd.js"></script>
+    <!-- Add this line to load your formatter.js -->
+    <script src="{{ url_for('static', filename='js/formatter.js') }}" defer></script>
     <style>
         body {
             background-color: #1a1a1a;
@@ -94,75 +94,5 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize TipTap editor
-            const editor = new TiptapCore.Editor({
-                element: document.querySelector('#editor'),
-                extensions: [
-                    TiptapStarterKit.default,
-                    TiptapUnderline.Underline
-                ],
-                content: '<p>Start typing here...</p>',
-                editable: true,
-                onUpdate: ({ editor }) => {
-                    updatePreview();
-                }
-            });
-
-            // Handle formatting button clicks
-            document.querySelectorAll('[data-format]').forEach(button => {
-                button.addEventListener('click', () => {
-                    const format = button.dataset.format;
-                    if (format === 'bold') editor.chain().focus().toggleBold().run();
-                    else if (format === 'italic') editor.chain().focus().toggleItalic().run();
-                    else if (format === 'underline') editor.chain().focus().toggleUnderline().run();
-                });
-            });
-
-            // Function to update preview
-            function updatePreview() {
-                const htmlContent = editor.getHTML();
-                fetch('/format', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ text: htmlContent })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        document.getElementById('errorMessage').textContent = data.error;
-                        document.getElementById('errorMessage').classList.remove('d-none');
-                        document.getElementById('previewArea').textContent = '';
-                        document.getElementById('copyButton').disabled = true;
-                    } else {
-                        document.getElementById('previewArea').textContent = data.text;
-                        document.getElementById('errorMessage').classList.add('d-none');
-                        document.getElementById('copyButton').disabled = false;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    document.getElementById('errorMessage').textContent = 'An error occurred while previewing the text';
-                    document.getElementById('errorMessage').classList.remove('d-none');
-                    document.getElementById('previewArea').textContent = '';
-                    document.getElementById('copyButton').disabled = true;
-                });
-            }
-
-            // Copy to clipboard functionality
-            document.getElementById('copyButton').addEventListener('click', () => {
-                const text = document.getElementById('previewArea').textContent;
-                navigator.clipboard.writeText(text).then(() => {
-                    alert('Text copied to clipboard!');
-                }).catch(err => {
-                    console.error('Failed to copy text:', err);
-                    alert('Failed to copy text. Please copy manually.');
-                });
-            });
-        });
-    </script>
 </body>
 </html>

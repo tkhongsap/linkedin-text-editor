@@ -1,90 +1,98 @@
-from flask import Flask, render_template, request, jsonify
-from bs4 import BeautifulSoup
+from flask import Flask, request, render_template_string
 import re
 import os
-import logging
+from dotenv import load_dotenv
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
+# Load environment variables from .env file
+load_dotenv()
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key")
+# Define style maps for bold and italic using Unicode characters
+bold_map = {chr(ord('A') + i): chr(0x1D400 + i) for i in range(26)}
+bold_map.update({chr(ord('a') + i): chr(0x1D41A + i) for i in range(26)})
+italic_map = {chr(ord('A') + i): chr(0x1D434 + i) for i in range(26)}
+italic_map.update({chr(ord('a') + i): chr(0x1D44E + i) for i in range(26)})
 
-# Define character maps for formatting
-BOLD_MAP = {chr(ord('A') + i): chr(0x1D400 + i) for i in range(26)}
-BOLD_MAP.update({chr(ord('a') + i): chr(0x1D41A + i) for i in range(26)})
-ITALIC_MAP = {chr(ord('A') + i): chr(0x1D434 + i) for i in range(26)}
-ITALIC_MAP.update({chr(ord('a') + i): chr(0x1D44E + i) for i in range(26)})
-
+# Function to apply a style to text
 def apply_style(text, style_map):
-    """Apply Unicode style mapping to text"""
-    return ''.join(style_map.get(c, c) for c in text)
+    return ''.join(style_map.get(char, char) for char in text)
 
-def parse_html_format(html_content):
-    """Parse HTML and apply formatting"""
-    try:
-        soup = BeautifulSoup(html_content, 'html.parser')
-        result = []
+# Function to parse text and apply styles based on markers
+def parse_text(text):
+    def bold_replacer(match):
+        return apply_style(match.group(1), bold_map)
+    def italic_replacer(match):
+        return apply_style(match.group(1), italic_map)
+    text = re.sub(r'\*(.*?)\*', bold_replacer, text)
+    text = re.sub(r'_(.*?)_', italic_replacer, text)
+    return text
 
-        for element in soup.descendants:
-            if isinstance(element, str) and element.strip():
-                text = element.strip()
-                parent_tags = [p.name for p in element.parents]
+# Initialize the Flask app
+app = Flask(__name__)
 
-                # Apply formatting based on parent tags
-                if 'strong' in parent_tags or 'b' in parent_tags:
-                    text = apply_style(text, BOLD_MAP)
-                if 'em' in parent_tags or 'i' in parent_tags:
-                    text = apply_style(text, ITALIC_MAP)
+# HTML template with basic styling and clipboard functionality
+HTML_TEMPLATE = """
+<html>
+<head>
+    <title>LinkedIn Text Formatter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            margin: 10px 0;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LinkedIn Text Formatter</h1>
+    <p>Use * for bold and _ for italic. For example: This is *bold* and this is _italic_. Ensure markers are properly closed and do not nest them.</p>
+    <form method="post">
+        <textarea name="text" rows="10" cols="50" placeholder="e.g., Hello *world*! This is _important_."></textarea><br>
+        <input type="submit" value="Preview">
+    </form>
+    {% if formatted_text %}
+        <h2>Preview:</h2>
+        <pre id="preview">{{ formatted_text }}</pre>
+        <button onclick="copyToClipboard()">Copy to Clipboard</button>
+        <p><i>Note: If the copy button doesn't work, manually select and copy the text above.</i></p>
+        <script>
+            function copyToClipboard() {
+                var text = document.getElementById('preview').textContent;
+                navigator.clipboard.writeText(text).then(function() {
+                    alert('Copied to clipboard');
+                }, function(err) {
+                    alert('Failed to copy: ' + err);
+                });
+            }
+        </script>
+    {% endif %}
+</body>
+</html>
+"""
 
-                result.append(text)
-
-        return " ".join(result).strip()
-    except Exception as e:
-        logging.error(f"Error parsing HTML: {str(e)}")
-        raise
-
-def format_text(text):
-    """Format text with bold and italic styles"""
-    try:
-        # Check for unmatched markers
-        if text.count('*') % 2 != 0 or text.count('_') % 2 != 0:
-            return {"error": "Unmatched formatting markers found"}
-
-        # Apply bold formatting
-        def bold_replacer(match):
-            return apply_style(match.group(1), BOLD_MAP)
-        
-        # Apply italic formatting
-        def italic_replacer(match):
-            return apply_style(match.group(1), ITALIC_MAP)
-
-        # Process the text
-        formatted = text
-        formatted = re.sub(r'\*(.*?)\*', bold_replacer, formatted)
-        formatted = re.sub(r'_(.*?)_', italic_replacer, formatted)
-        
-        return {"text": formatted}
-    except Exception as e:
-        logging.error(f"Error formatting text: {str(e)}")
-        return {"error": "An error occurred while formatting the text"}
-
-@app.route('/')
+# Define the main route with proper error handling
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    if request.method == 'POST':
+        try:
+            user_text = request.form['text']
+            formatted_text = parse_text(user_text)
+        except Exception as error:
+            formatted_text = "Error processing text: " + str(error)
+        return render_template_string(HTML_TEMPLATE, formatted_text=formatted_text)
+    return render_template_string(HTML_TEMPLATE)
 
-@app.route('/format', methods=['POST'])
-def format_text_endpoint():
-    try:
-        content = request.json.get('text', '')
-        if not content:
-            return jsonify({"text": ""})
-
-        formatted_text = parse_html_format(content)
-        return jsonify({"text": formatted_text})
-    except Exception as e:
-        logging.error(f"Error in format_text_endpoint: {str(e)}")
-        return jsonify({"error": "An error occurred while formatting the text"}), 500
-
+# Run the app
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    try:
+        port = int(os.getenv('PORT', '8080'))
+    except ValueError as error:
+        print("Invalid PORT value. Using default port 8080.", error)
+        port = 8080
+    app.run(host='0.0.0.0', port=port)
