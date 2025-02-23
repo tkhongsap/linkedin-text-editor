@@ -1,11 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const editor = new window.Tiptap.Editor({
+    const editor = new Tiptap.Editor({
         element: document.querySelector('#editor'),
         extensions: [
-            window.Tiptap.StarterKit,
-            window.TiptapUnderline.Underline
+            Tiptap.StarterKit.default,
+            TiptapUnderline.Underline
         ],
         content: '',
+        editable: true,
+        autofocus: true,
         editorProps: {
             attributes: {
                 class: 'form-control editor-content',
