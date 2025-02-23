@@ -1,7 +1,11 @@
 from flask import Flask, request, render_template_string
 import re
 import os
+import logging
 from dotenv import load_dotenv
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -28,6 +32,7 @@ def parse_text(text):
 
 # Initialize the Flask app
 app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET")
 
 # HTML template with basic styling and clipboard functionality
 HTML_TEMPLATE = """
@@ -38,40 +43,82 @@ HTML_TEMPLATE = """
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         textarea {
+            width: 100%;
             margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
         }
         pre {
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 5px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button {
+            background-color: #0a66c2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #004182;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>LinkedIn Text Formatter</h1>
-    <p>Use * for bold and _ for italic. For example: This is *bold* and this is _italic_. Ensure markers are properly closed and do not nest them.</p>
-    <form method="post">
-        <textarea name="text" rows="10" cols="50" placeholder="e.g., Hello *world*! This is _important_."></textarea><br>
-        <input type="submit" value="Preview">
-    </form>
-    {% if formatted_text %}
-        <h2>Preview:</h2>
-        <pre id="preview">{{ formatted_text }}</pre>
-        <button onclick="copyToClipboard()">Copy to Clipboard</button>
-        <p><i>Note: If the copy button doesn't work, manually select and copy the text above.</i></p>
-        <script>
-            function copyToClipboard() {
-                var text = document.getElementById('preview').textContent;
-                navigator.clipboard.writeText(text).then(function() {
-                    alert('Copied to clipboard');
-                }, function(err) {
-                    alert('Failed to copy: ' + err);
-                });
-            }
-        </script>
-    {% endif %}
+    <div class="container">
+        <h1>LinkedIn Text Formatter</h1>
+        <div class="instructions">
+            <p><strong>How to use:</strong></p>
+            <p>Use * for bold and _ for italic. For example: This is *bold* and this is _italic_.</p>
+            <p><em>Note: Ensure markers are properly closed and do not nest them.</em></p>
+        </div>
+        <form method="post">
+            <textarea name="text" rows="10" placeholder="e.g., Hello *world*! This is _important_."></textarea><br>
+            <button type="submit">Preview</button>
+        </form>
+        {% if formatted_text %}
+            <h2>Preview:</h2>
+            <pre id="preview">{{ formatted_text }}</pre>
+            <button onclick="copyToClipboard()">Copy to Clipboard</button>
+            <p><i>Note: If the copy button doesn't work, manually select and copy the text above.</i></p>
+            <script>
+                function copyToClipboard() {
+                    var text = document.getElementById('preview').textContent;
+                    navigator.clipboard.writeText(text).then(function() {
+                        alert('Copied to clipboard!');
+                    }, function(err) {
+                        alert('Failed to copy: ' + err);
+                    });
+                }
+            </script>
+        {% endif %}
+    </div>
 </body>
 </html>
 """
@@ -83,16 +130,13 @@ def index():
         try:
             user_text = request.form['text']
             formatted_text = parse_text(user_text)
+            logging.debug(f"Formatted text: {formatted_text}")
         except Exception as error:
-            formatted_text = "Error processing text: " + str(error)
+            logging.error(f"Error processing text: {error}")
+            formatted_text = f"Error processing text: {str(error)}"
         return render_template_string(HTML_TEMPLATE, formatted_text=formatted_text)
     return render_template_string(HTML_TEMPLATE)
 
 # Run the app
 if __name__ == '__main__':
-    try:
-        port = int(os.getenv('PORT', '8080'))
-    except ValueError as error:
-        print("Invalid PORT value. Using default port 8080.", error)
-        port = 8080
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000, debug=True)
