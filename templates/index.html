@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkedIn Text Formatter</title>
-    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <!-- TipTap Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.12/dist/index.umd.js"></script>
@@ -13,81 +13,138 @@
     <script src="https://cdn.jsdelivr.net/npm/@tiptap/extension-underline@2.1.12/dist/index.umd.js"></script>
     <!-- Add this line to load your formatter.js -->
     <script src="{{ url_for('static', filename='js/formatter.js') }}" defer></script>
-    <style>
-        body {
-            background-color: #1a1a1a;
-            color: #ffffff;
-        }
-        .editor-content {
-            min-height: 200px;
-            background-color: #2d2d2d;
-            border: 1px solid #444;
-            padding: 10px;
-        }
-        .preview-text {
-            background-color: #2d2d2d;
-            padding: 10px;
-            border-radius: 5px;
-            min-height: 200px;
-        }
-        #copyButton:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .ProseMirror {
-            padding: 1rem;
-            min-height: 200px;
-            outline: none;
-        }
-        .ProseMirror p {
-            margin: 0;
-        }
-    </style>
 </head>
 <body>
     <div class="container py-4">
-        <header class="text-center mb-5">
-            <h1 class="display-4">LinkedIn Text Formatter</h1>
-            <p class="lead">Format your text with beautiful typography for LinkedIn</p>
+        <header class="text-center mb-3">
+            <h1 class="fw-bold">LinkedIn Text Formatter</h1>
+            <p class="text-muted mb-4">Format your LinkedIn post with bold, italic and more for free.</p>
         </header>
 
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Editor</h5>
-                        <div class="btn-group" role="group" aria-label="Formatting options">
-                            <button type="button" class="btn btn-secondary" data-format="bold" title="Bold">
-                                <i class="bi bi-type-bold"></i>
-                            </button>
-                            <button type="button" class="btn btn-secondary" data-format="italic" title="Italic">
-                                <i class="bi bi-type-italic"></i>
-                            </button>
-                            <button type="button" class="btn btn-secondary" data-format="underline" title="Underline">
-                                <i class="bi bi-type-underline"></i>
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body p-0">
+                        <!-- Formatting toolbar -->
+                        <div class="border-bottom p-2 d-flex align-items-center">
+                            <div class="btn-toolbar me-auto" role="toolbar">
+                                <div class="btn-group me-2" role="group">
+                                    <button type="button" class="btn btn-light" id="bold-btn">
+                                        <i class="bi bi-type-bold"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="italic-btn">
+                                        <i class="bi bi-type-italic"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="underline-btn">
+                                        <i class="bi bi-type-underline"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="strikethrough-btn">
+                                        <i class="bi bi-type-strikethrough"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="btn-group me-2" role="group">
+                                    <button type="button" class="btn btn-light" id="code-btn">
+                                        <i class="bi bi-code"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="link-btn">
+                                        <i class="bi bi-link-45deg"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="image-btn">
+                                        <i class="bi bi-image"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-light" id="undo-btn">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="redo-btn">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="clear-formatting-btn">
+                                        <i class="bi bi-eraser"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="btn-group ms-2" role="group">
+                                    <button type="button" class="btn btn-light" id="bullet-list-btn">
+                                        <i class="bi bi-list-ul"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="ordered-list-btn">
+                                        <i class="bi bi-list-ol"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-light" id="indent-btn">
+                                        <i class="bi bi-text-indent-left"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-light ms-auto" id="preview-toggle">
+                                Post Preview
                             </button>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="editor" class="editor-content"></div>
+
+                        <!-- Editor area -->
+                        <div class="editor-container p-3">
+                            <div id="editor" class="editor-content" placeholder="Write here..."></div>
+                        </div>
+                        
+                        <!-- Preview area (LinkedIn post mockup) -->
+                        <div id="preview-container" class="preview-container p-3 bg-light" style="display: none;">
+                            <div class="linkedin-post-preview bg-white rounded shadow-sm p-3">
+                                <div class="d-flex mb-3">
+                                    <div class="profile-img me-2">
+                                        <img src="{{ url_for('static', filename='images/profile.svg') }}" alt="Profile" class="rounded-circle" width="48" height="48">
+                                    </div>
+                                    <div class="profile-info">
+                                        <h6 class="mb-0">Alex Dahud</h6>
+                                        <p class="text-muted small mb-0">Growth at Typegrow | Helping you grow LinkedIn audience with AI</p>
+                                        <small class="text-muted">12h · <i class="bi bi-globe"></i></small>
+                                    </div>
+                                </div>
+                                
+                                <div id="preview-content" class="mb-3">
+                                    <p>Start writing and your post will appear here...</p>
+                                    <p>You can add images, links, <span class="text-primary">#hashtags</span> and emojis 🍎</p>
+                                    <p>This line will appear below the more...</p>
+                                </div>
+                                
+                                <div class="post-stats d-flex align-items-center text-muted small mb-2">
+                                    <span><i class="bi bi-hand-thumbs-up text-primary"></i> <i class="bi bi-emoji-smile text-warning"></i> 57</span>
+                                    <span class="ms-auto">24 comments · 6 reposts</span>
+                                </div>
+                                
+                                <div class="post-actions d-flex border-top pt-2">
+                                    <button class="btn btn-light flex-fill">
+                                        <i class="bi bi-hand-thumbs-up"></i> Like
+                                    </button>
+                                    <button class="btn btn-light flex-fill">
+                                        <i class="bi bi-chat-text"></i> Comment
+                                    </button>
+                                    <button class="btn btn-light flex-fill">
+                                        <i class="bi bi-arrow-repeat"></i> Repost
+                                    </button>
+                                    <button class="btn btn-light flex-fill">
+                                        <i class="bi bi-send"></i> Send
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Preview</h5>
-                        <button id="copyButton" class="btn btn-secondary" disabled>
-                            <i class="bi bi-clipboard"></i> Copy
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="previewArea" class="preview-text">
-                            Your formatted text will appear here...
-                        </div>
-                        <div id="errorMessage" class="alert alert-danger mt-3 d-none" role="alert"></div>
-                    </div>
+                
+                <!-- Action buttons -->
+                <div class="d-flex justify-content-center">
+                    <button id="copy-btn" class="btn btn-light me-2">
+                        <i class="bi bi-clipboard"></i> Copy text
+                    </button>
+                    <button id="schedule-btn" class="btn btn-warning me-2">
+                        <i class="bi bi-calendar-event"></i> Schedule
+                    </button>
+                    <button id="post-now-btn" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Post now
+                    </button>
                 </div>
             </div>
         </div>

@@ -1,76 +1,167 @@
-/* Custom styles to complement Bootstrap theme */
-.preview-text {
-    min-height: 200px;
-    padding: 1rem;
-    background-color: var(--bs-dark);
-    border-radius: 0.375rem;
-    white-space: pre-wrap;
-    word-wrap: break-word;
+/* Main layout styles */
+body {
+    background-color: #f3f2ef;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #333;
+}
+
+.container {
+    max-width: 960px;
+}
+
+/* Editor styles */
+.editor-container {
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .editor-content {
     min-height: 200px;
-    font-family: var(--bs-font-monospace);
-    resize: none;
-    background-color: var(--bs-dark);
-}
-
-.editor-content p {
-    margin-bottom: 0.5rem;
-}
-
-.formatting-guide {
-    border-left: 3px solid var(--bs-primary);
-    padding-left: 1rem;
-}
-
-/* TipTap editor styles */
-.ProseMirror {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333;
     outline: none;
 }
 
-.ProseMirror p.is-editor-empty:first-child::before {
+/* TipTap specific editor styles */
+.ProseMirror {
+    outline: none !important;
+    padding: 0.5rem;
+}
+
+.ProseMirror p {
+    margin-bottom: 0.75rem;
+}
+
+.ProseMirror p:last-child {
+    margin-bottom: 0;
+}
+
+.ProseMirror p:first-child:empty:before {
     content: attr(data-placeholder);
-    float: left;
-    color: var(--bs-secondary-color);
+    color: #aaa;
     pointer-events: none;
+    float: left;
     height: 0;
 }
 
-/* Button states */
-.btn[data-format].active {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
+/* Toolbar styles */
+.btn-light {
+    color: #666;
+    border-color: transparent;
 }
 
-/* Copy button animation */
-.copy-success {
-    background-color: var(--bs-success) !important;
-    transition: background-color 0.3s ease;
+.btn-light:hover,
+.btn-light.active {
+    background-color: #eaeaea;
+    color: #0a66c2;
+}
+
+.btn-toolbar .btn-group {
+    margin-right: 0.5rem;
+}
+
+/* LinkedIn preview styles */
+.preview-container {
+    background-color: #f3f2ef;
+}
+
+.linkedin-post-preview {
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.profile-img img {
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+}
+
+.profile-info h6 {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+#preview-content {
+    font-size: 15px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.post-stats {
+    font-size: 12px;
+    color: #666;
+    padding: 8px 0;
+}
+
+.post-actions {
+    border-top: 1px solid #e0e0e0;
+}
+
+.post-actions .btn {
+    color: #666;
+    border: none;
+    font-size: 14px;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.post-actions .btn:hover {
+    background-color: #f0f0f0;
+}
+
+/* Bottom action buttons */
+#copy-btn {
+    border: 1px solid #e0e0e0;
+    color: #666;
+}
+
+#schedule-btn {
+    background-color: #f5c24c;
+    border: none;
+    color: #333;
+}
+
+#post-now-btn {
+    background-color: #0a66c2;
+    border: none;
+}
+
+/* Button states */
+.btn.active {
+    background-color: #eaeaea;
+    color: #0a66c2;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .container {
-        padding: 1rem;
+        padding: 0;
     }
-
-    .preview-text,
-    .editor-content {
+    
+    .btn-toolbar {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 8px;
+    }
+    
+    .editor-content,
+    #preview-content {
         min-height: 150px;
     }
-
-    .btn-group {
-        width: 100%;
-        margin-top: 0.5rem;
+    
+    .d-flex.justify-content-center {
+        flex-wrap: wrap;
     }
-
-    .btn-group .btn {
-        flex: 1;
+    
+    .d-flex.justify-content-center .btn {
+        margin-bottom: 8px;
+        flex-basis: 100%;
     }
 }
 
-textarea.form-control {
-    font-family: monospace;
-    resize: vertical;
+/* Hashtags styling */
+.text-primary {
+    color: #0a66c2 !important;
 }
