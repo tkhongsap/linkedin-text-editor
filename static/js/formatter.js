@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Set up a simple text editor first before trying to initialize TipTap
+    // Set up a simple text editor
     setupBasicEditor();
     
-    // Try to initialize TipTap with a delay to ensure all scripts are loaded
-    setTimeout(initTipTap, 500);
+    // Add mobile-specific behaviors
+    setupMobileEnhancements();
 });
 
 // Basic editor functionality using contenteditable
@@ -191,18 +191,66 @@ function formatText(text) {
     });
 }
 
-// Try to initialize TipTap editor (this is a fallback that may work if scripts load properly)
-function initTipTap() {
-    try {
-        if (typeof tiptap !== 'undefined' && tiptap.Editor) {
-            console.log('TipTap initialized');
-            const editor = new tiptap.Editor({
-                element: document.querySelector('#editor'),
-                content: document.querySelector('#editor').innerHTML,
-                editable: true
-            });
-        }
-    } catch (e) {
-        console.log('TipTap initialization skipped, using basic editor', e);
+// Mobile-specific enhancements
+function setupMobileEnhancements() {
+    // Detect if we're on mobile
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    
+    if (isMobile) {
+        // Adjust editor height for better mobile experience
+        const editor = document.getElementById('editor');
+        editor.style.minHeight = '120px';
+        
+        // Enhance toolbar visibility on mobile
+        const toolbarButtons = document.querySelectorAll('.btn-toolbar .btn');
+        toolbarButtons.forEach(button => {
+            button.classList.add('p-1');
+            // Make touch targets larger
+            button.style.minWidth = '40px';
+            button.style.minHeight = '40px';
+        });
+        
+        // Add scroll to top when switching to editor
+        document.getElementById('preview-toggle').addEventListener('click', function() {
+            if (this.textContent === 'Back to Editor') {
+                window.scrollTo(0, 0);
+            }
+        });
+        
+        // Make sure buttons are large enough for touch
+        const actionButtons = document.querySelectorAll('#copy-btn, #schedule-btn, #post-now-btn');
+        actionButtons.forEach(button => {
+            button.classList.add('py-2');
+        });
+        
+        // Handle keyboard appearing/disappearing (for mobile)
+        const viewportHeight = window.innerHeight;
+        window.addEventListener('resize', function() {
+            // If the height is significantly less than viewport height, keyboard is probably showing
+            if (window.innerHeight < viewportHeight * 0.8) {
+                // Hide preview button when keyboard is showing to save space
+                document.getElementById('preview-toggle').style.display = 'none';
+            } else {
+                document.getElementById('preview-toggle').style.display = 'block';
+            }
+        });
     }
+
+    // Add viewport meta update for proper scaling based on device
+    function updateViewportForDevice() {
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        
+        if (viewportMeta) {
+            // For small devices, use a different viewport setting to avoid zooming issues
+            if (window.innerWidth < 360) {
+                viewportMeta.setAttribute('content', 'width=device-width, initial-scale=0.86, maximum-scale=0.86, user-scalable=no');
+            } else {
+                viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+            }
+        }
+    }
+    
+    // Run initially and on resize
+    updateViewportForDevice();
+    window.addEventListener('resize', updateViewportForDevice);
 }
