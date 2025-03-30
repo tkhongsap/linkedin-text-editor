@@ -1,16 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background with gradient -->
-  <circle cx="50" cy="50" r="50" fill="#2D8CFF"/>
-  
-  <!-- Abstract representation of a person -->
-  <circle cx="50" cy="40" r="20" fill="#FFFFFF"/>
-  <path d="M25,85 C25,65 75,65 75,85" fill="#FFFFFF"/>
-  
-  <!-- Modern glasses suggestion -->
-  <path d="M38,38 L45,38" stroke="#333333" stroke-width="2"/>
-  <circle cx="35" cy="38" r="5" fill="none" stroke="#333333" stroke-width="2"/>
-  <circle cx="48" cy="38" r="5" fill="none" stroke="#333333" stroke-width="2"/>
-  <path d="M55,38 L62,38" stroke="#333333" stroke-width="2"/>
-  <circle cx="65" cy="38" r="5" fill="none" stroke="#333333" stroke-width="2"/>
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="24" cy="24" r="24" fill="#0a66c2"/>
+  <path d="M24 12C19.5817 12 16 15.5817 16 20C16 24.4183 19.5817 28 24 28C28.4183 28 32 24.4183 32 20C32 15.5817 28.4183 12 24 12Z" fill="white"/>
+  <path d="M35.9999 36C35.9999 29.3726 30.6274 24 23.9999 24C17.3725 24 12 29.3726 12 36" stroke="white" stroke-width="6"/>
 </svg>
