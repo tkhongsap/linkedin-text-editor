@@ -10,22 +10,35 @@ logging.basicConfig(level=logging.DEBUG)
 # Load environment variables from .env file
 load_dotenv()
 
-# LinkedIn actually supports a specific set of markdown-like syntax
-# Instead of using Unicode characters, we'll use LinkedIn's supported formatting
-
-# For bold: LinkedIn supports *bold* syntax
-# For italic: LinkedIn supports _italic_ syntax (but doesn't display well in all cases)
-# For bullet points: LinkedIn supports standard bullet points with proper formatting
-
-# Define style maps for formatting using Unicode characters (only for BOLD)
-# Since LinkedIn's native bold with asterisks doesn't always work in mobile
+# Define style maps for formatting using Unicode characters
+# Mathematical Bold characters (for bold formatting)
 bold_map = {chr(ord('A') + i): chr(0x1D400 + i) for i in range(26)}  # Uppercase
 bold_map.update({chr(ord('a') + i): chr(0x1D41A + i) for i in range(26)})  # Lowercase
 bold_map.update({str(i): chr(0x1D7CE + i) for i in range(10)})  # Numbers
 
+# Mathematical Italic characters (for italic formatting)
+# These are characters that LinkedIn actually displays as italic
+italic_map = {chr(ord('A') + i): chr(0x1D434 + i) for i in range(26)}  # Uppercase
+italic_map.update({chr(ord('a') + i): chr(0x1D44E + i) for i in range(26)})  # Lowercase
+
+# Special characters for bullet points in LinkedIn
+bullet_map = {
+    '•': '•',           # Standard bullet point (U+2022)
+    '○': '○',           # White bullet (U+25E6)
+    '▪': '▪',           # Black small square (U+25AA)
+    '■': '■',           # Black square (U+25A0)
+    '►': '►',           # Black right-pointing triangle (U+25B6)
+    '★': '★',           # Black star (U+2605)
+    '✓': '✓',           # Check mark (U+2713)
+    '✔': '✔',           # Heavy check mark (U+2714)
+    '-': '—',           # Em dash (for list items)
+    '*': '•',           # Asterisk to bullet conversion
+}
+
 # Common punctuation and symbols to preserve in formatting
 for char in "!@#$%^&*()_+-=[]{}|;:'\",.<>/?`~ \n":
     bold_map[char] = char
+    italic_map[char] = char
 
 # Function to apply a style to text
 def apply_style(text, style_map):
@@ -33,56 +46,56 @@ def apply_style(text, style_map):
 
 # Function to parse text and apply styles based on markers
 def parse_text(text):
-    # First, process the input text to detect HTML tags
-    # For LinkedIn, we need to convert HTML formatting to LinkedIn-friendly formatting
-    # This includes converting <b> to *text*, <i> to _text_, etc.
+    # Handle special formatting cases - we'll break the text into segments
+    # so we can apply different formatting to different parts
     
-    # Process white space and containers first
-    text = re.sub(r'<div[^>]*>|<p[^>]*>', '\n', text, flags=re.DOTALL)
-    text = re.sub(r'</div>|</p>', '', text)
-    text = re.sub(r'<br\s*/?>', '\n', text)
-    
-    # Process bullet points 
-    def process_bullet_points(text):
-        # Handle HTML lists
-        text = re.sub(r'<li[^>]*>(.*?)</li>', r'• \1\n', text, flags=re.DOTALL)
-        
-        # Handle markdown-style lists
-        text = re.sub(r'(?m)^\s*[-*]\s+(.*?)$', r'• \1', text)
-        
-        # Ensure proper spacing for bullet points
-        text = re.sub(r'•\s*', '• ', text)
-        
-        return text
-    
-    # Process list elements
-    text = re.sub(r'<ul[^>]*>(.*?)</ul>', lambda m: process_bullet_points(m.group(1)), text, flags=re.DOTALL)
-    text = re.sub(r'<ol[^>]*>(.*?)</ol>', lambda m: m.group(1), text, flags=re.DOTALL)
-    
-    # Handle standalone bullet points
-    text = process_bullet_points(text)
-    
-    # Bold formatting handlers
-    def bold_to_linkedin(match):
-        # Use Unicode characters for bold in LinkedIn (more reliable)
+    # Bold text replacer
+    def bold_replacer(match):
         return apply_style(match.group(1), bold_map)
     
-    # Convert HTML bold tags to LinkedIn formatting
-    text = re.sub(r'<b[^>]*>(.*?)</b>', lambda m: f"*{m.group(1)}*", text, flags=re.DOTALL)
-    text = re.sub(r'<strong[^>]*>(.*?)</strong>', lambda m: f"*{m.group(1)}*", text, flags=re.DOTALL)
+    # Italic text replacer
+    def italic_replacer(match):
+        return apply_style(match.group(1), italic_map)
     
-    # Convert HTML italic tags to LinkedIn formatting
-    text = re.sub(r'<i[^>]*>(.*?)</i>', lambda m: f"_{m.group(1)}_", text, flags=re.DOTALL)
-    text = re.sub(r'<em[^>]*>(.*?)</em>', lambda m: f"_{m.group(1)}_", text, flags=re.DOTALL)
+    # Convert bullet lists properly
+    def process_bullet_points(text):
+        # Process unordered list items from HTML
+        text = re.sub(r'<li>(.*?)</li>', r'• \1\n', text)
+        
+        # Process bullet points at the start of lines (common in plain text)
+        text = re.sub(r'^\s*[-*]\s+(.*?)$', r'• \1', text, flags=re.MULTILINE)
+        
+        # Convert markdown list items
+        text = re.sub(r'^\s*[-*+]\s+(.*?)$', r'• \1', text, flags=re.MULTILINE)
+        
+        return text
+
+    # Process bullet points first
+    text = process_bullet_points(text)
     
-    # Handle any markdown-style formatting in the text too
-    text = re.sub(r'\*\*(.*?)\*\*', bold_to_linkedin, text)  # **bold**
-    text = re.sub(r'\*(.*?)\*', bold_to_linkedin, text)      # *bold*
+    # Process list elements in HTML
+    text = re.sub(r'<ul>(.*?)</ul>', lambda m: m.group(1), text, flags=re.DOTALL)
+    text = re.sub(r'<ol>(.*?)</ol>', lambda m: m.group(1), text, flags=re.DOTALL)
     
-    # Clean up the text
-    text = re.sub(r' +', ' ', text)  # Multiple spaces to single space
-    text = re.sub(r'\n\s*\n', '\n\n', text)  # Multiple newlines to double newline
-    text = re.sub(r'^\s+|\s+$', '', text, flags=re.MULTILINE)  # Trim lines
+    # Apply formatting - order matters to handle nested formatting
+    # Process all markdown-style formatting markers
+    text = re.sub(r'\*\*(.*?)\*\*', bold_replacer, text)  # **bold** syntax
+    text = re.sub(r'\*(.*?)\*', bold_replacer, text)      # *bold* syntax (also common)
+    text = re.sub(r'__(.*?)__', bold_replacer, text)      # __bold__ syntax
+    text = re.sub(r'_(.*?)_', italic_replacer, text)      # _italic_ syntax
+    
+    # Process HTML-like tags (common in rich text editors)
+    text = re.sub(r'<b>(.*?)</b>', bold_replacer, text)           # <b>bold</b>
+    text = re.sub(r'<strong>(.*?)</strong>', bold_replacer, text) # <strong>bold</strong>
+    text = re.sub(r'<i>(.*?)</i>', italic_replacer, text)         # <i>italic</i>
+    text = re.sub(r'<em>(.*?)</em>', italic_replacer, text)       # <em>italic</em>
+    
+    # Make sure line breaks are preserved properly for LinkedIn
+    text = re.sub(r'<br\s*/?>|<div>|<p>', '\n', text)
+    text = re.sub(r'</div>|</p>', '', text)
+    
+    # Ensure double line breaks for paragraphs (LinkedIn styling)
+    text = re.sub(r'\n\s*\n', '\n\n', text)
     
     return text
 

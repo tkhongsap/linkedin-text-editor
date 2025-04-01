@@ -23,22 +23,32 @@ function setupBasicEditor() {
     
     // Basic formatting buttons functionality
     document.getElementById('bold-btn').addEventListener('click', function() {
-        // Apply visual bold styling to maintain WYSIWYG experience
         document.execCommand('bold');
-        
-        // LinkedIn bold formatting will be handled in the backend
-        // when converting to the final text with our formatText API
-        
         editor.focus();
         updatePreview();
     });
     
     document.getElementById('italic-btn').addEventListener('click', function() {
-        // Apply visual italic styling to maintain WYSIWYG experience
+        // Standard italic command
         document.execCommand('italic');
         
-        // LinkedIn italic formatting will be handled in the backend
-        // when converting to the final text with our formatText API
+        // LinkedIn specific handling - ensure selection is properly marked for our backend processor
+        const selection = window.getSelection();
+        if (!selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString();
+            
+            // If there's no <em> or <i> tag applied, manually wrap with underscore
+            // This ensures our backend processor can identify it for LinkedIn formatting
+            const container = range.commonAncestorContainer;
+            const parentElement = container.nodeType === 3 ? container.parentNode : container;
+            
+            if (!parentElement.closest('em') && !parentElement.closest('i')) {
+                // Replace selection with underscore-wrapped text for our processor
+                const wrappedText = `_${selectedText}_`;
+                document.execCommand('insertText', false, wrappedText);
+            }
+        }
         
         editor.focus();
         updatePreview();
@@ -80,23 +90,23 @@ function setupBasicEditor() {
     });
     
     document.getElementById('bullet-list-btn').addEventListener('click', function() {
-        // LinkedIn works better with actual bullet points rather than HTML lists
-        const selection = window.getSelection();
+        // First try standard HTML list command
+        document.execCommand('insertUnorderedList');
         
+        // Additionally, ensure bullet points are properly formatted for LinkedIn
+        // If selection is empty, just add a bullet point at cursor position
+        const selection = window.getSelection();
         if (selection.isCollapsed) {
-            // If no text is selected, insert a bullet point at cursor
-            document.execCommand('insertText', false, '• ');
-        } else {
-            // If text is selected, create bullet points for each line
             const range = selection.getRangeAt(0);
-            const selectedText = range.toString();
+            const listItem = document.createElement('li');
+            listItem.innerHTML = ' ';
+            range.insertNode(listItem);
             
-            // Split text into lines and add bullet points
-            const lines = selectedText.split('\n');
-            const bulletedLines = lines.map(line => `• ${line.trim()}`).join('\n');
-            
-            // Replace selection with bulleted text
-            document.execCommand('insertText', false, bulletedLines);
+            // Place cursor inside the list item
+            range.setStart(listItem, 0);
+            range.setEnd(listItem, 0);
+            selection.removeAllRanges();
+            selection.addRange(range);
         }
         
         editor.focus();
@@ -184,8 +194,8 @@ function setupBasicEditor() {
         // Format content for LinkedIn preview
         previewContent.innerHTML = processedHTML;
         
-        // Format the text using the backend API to get LinkedIn-compatible formatting
-        const plainText = editor.innerHTML; // Use innerHTML to capture all HTML formatting
+        // Format the text using the backend API if needed
+        const plainText = previewContent.textContent;
         if (plainText && plainText.trim() !== '') {
             fetch('/api/format', {
                 method: 'POST',
@@ -210,7 +220,7 @@ function setupBasicEditor() {
                 const formattedTextDisplay = document.createElement('div');
                 formattedTextDisplay.className = 'formatted-text-display mt-3 p-2 border border-primary rounded bg-light';
                 
-                // Style the formatted LinkedIn content with CSS to look like LinkedIn's formatting
+                // Create a formatted content with helpful hints about formatting
                 const formattedContent = data.formatted_text.replace(/\n/g, '<br>');
                 
                 formattedTextDisplay.innerHTML = `
@@ -219,9 +229,9 @@ function setupBasicEditor() {
                     <div class="small text-muted mt-2">
                         <strong>Supported formats:</strong>
                         <ul class="mb-0 ps-3">
-                            <li><strong>Bold:</strong> Bold text will appear in <strong>bold</strong> on LinkedIn</li>
-                            <li><em>Italic:</em> Italic text will appear in <em>italic</em> on LinkedIn</li>
-                            <li>Bullet points (• ) create bullet lists in LinkedIn</li>
+                            <li><strong>Bold:</strong> Use **text** or *text*</li>
+                            <li><em>Italic:</em> Use _text_</li>
+                            <li>Bullet points: Start line with - or * </li>
                         </ul>
                     </div>
                 `;
