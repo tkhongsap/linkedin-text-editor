@@ -23,52 +23,22 @@ function setupBasicEditor() {
     
     // Basic formatting buttons functionality
     document.getElementById('bold-btn').addEventListener('click', function() {
-        // LinkedIn supports *text* or **text** syntax for bold
-        const selection = window.getSelection();
-        if (!selection.isCollapsed) {
-            // Get selected text
-            const range = selection.getRangeAt(0);
-            const selectedText = range.toString();
-            
-            // Replace selected text with *text* format for LinkedIn
-            document.execCommand('insertText', false, `*${selectedText}*`);
-        } else {
-            // If no selection, insert asterisks and place cursor between them
-            document.execCommand('insertText', false, '**');
-            
-            // Move cursor between asterisks
-            const newRange = selection.getRangeAt(0);
-            newRange.setStart(newRange.startContainer, newRange.startOffset - 1);
-            newRange.setEnd(newRange.endContainer, newRange.endOffset - 1);
-            selection.removeAllRanges();
-            selection.addRange(newRange);
-        }
+        // Apply visual bold styling to maintain WYSIWYG experience
+        document.execCommand('bold');
+        
+        // LinkedIn bold formatting will be handled in the backend
+        // when converting to the final text with our formatText API
         
         editor.focus();
         updatePreview();
     });
     
     document.getElementById('italic-btn').addEventListener('click', function() {
-        // LinkedIn uses _text_ syntax for italic
-        const selection = window.getSelection();
-        if (!selection.isCollapsed) {
-            // Get selected text
-            const range = selection.getRangeAt(0);
-            const selectedText = range.toString();
-            
-            // Replace selected text with _text_ format for LinkedIn
-            document.execCommand('insertText', false, `_${selectedText}_`);
-        } else {
-            // If no selection, insert underscores and place cursor between them
-            document.execCommand('insertText', false, '__');
-            
-            // Move cursor between underscores
-            const newRange = selection.getRangeAt(0);
-            newRange.setStart(newRange.startContainer, newRange.startOffset - 1);
-            newRange.setEnd(newRange.endContainer, newRange.endOffset - 1);
-            selection.removeAllRanges();
-            selection.addRange(newRange);
-        }
+        // Apply visual italic styling to maintain WYSIWYG experience
+        document.execCommand('italic');
+        
+        // LinkedIn italic formatting will be handled in the backend
+        // when converting to the final text with our formatText API
         
         editor.focus();
         updatePreview();
@@ -214,8 +184,8 @@ function setupBasicEditor() {
         // Format content for LinkedIn preview
         previewContent.innerHTML = processedHTML;
         
-        // Format the text using the backend API if needed
-        const plainText = previewContent.textContent;
+        // Format the text using the backend API to get LinkedIn-compatible formatting
+        const plainText = editor.innerHTML; // Use innerHTML to capture all HTML formatting
         if (plainText && plainText.trim() !== '') {
             fetch('/api/format', {
                 method: 'POST',
@@ -240,7 +210,7 @@ function setupBasicEditor() {
                 const formattedTextDisplay = document.createElement('div');
                 formattedTextDisplay.className = 'formatted-text-display mt-3 p-2 border border-primary rounded bg-light';
                 
-                // Create a formatted content with helpful hints about formatting
+                // Style the formatted LinkedIn content with CSS to look like LinkedIn's formatting
                 const formattedContent = data.formatted_text.replace(/\n/g, '<br>');
                 
                 formattedTextDisplay.innerHTML = `
@@ -249,9 +219,9 @@ function setupBasicEditor() {
                     <div class="small text-muted mt-2">
                         <strong>Supported formats:</strong>
                         <ul class="mb-0 ps-3">
-                            <li><strong>Bold:</strong> Use **text** or *text*</li>
-                            <li><em>Italic:</em> Use _text_</li>
-                            <li>Bullet points: Start line with - or * </li>
+                            <li><strong>Bold:</strong> Bold text will appear in <strong>bold</strong> on LinkedIn</li>
+                            <li><em>Italic:</em> Italic text will appear in <em>italic</em> on LinkedIn</li>
+                            <li>Bullet points (• ) create bullet lists in LinkedIn</li>
                         </ul>
                     </div>
                 `;

@@ -33,57 +33,53 @@ def apply_style(text, style_map):
 
 # Function to parse text and apply styles based on markers
 def parse_text(text):
-    # First, clean up HTML tags and convert them to appropriate formats
-    # Replace <div> and <p> tags with newlines for proper formatting
-    text = re.sub(r'<div[^>]*>|<p[^>]*>', '\n', text)
-    text = re.sub(r'</div>|</p>', '', text)
+    # First, process the input text to detect HTML tags
+    # For LinkedIn, we need to convert HTML formatting to LinkedIn-friendly formatting
+    # This includes converting <b> to *text*, <i> to _text_, etc.
     
-    # Convert any <br> tags to newlines
+    # Process white space and containers first
+    text = re.sub(r'<div[^>]*>|<p[^>]*>', '\n', text, flags=re.DOTALL)
+    text = re.sub(r'</div>|</p>', '', text)
     text = re.sub(r'<br\s*/?>', '\n', text)
     
-    # Handle special formatting cases for LinkedIn
-    
-    # Bold text replacer - use Unicode for bold (more reliable in LinkedIn)
-    def bold_replacer(match):
-        return apply_style(match.group(1), bold_map)
-    
-    # Process bullet lists
-    # LinkedIn displays bullet points properly when using the actual bullet character
+    # Process bullet points 
     def process_bullet_points(text):
-        # Convert HTML list items to bullet points
+        # Handle HTML lists
         text = re.sub(r'<li[^>]*>(.*?)</li>', r'• \1\n', text, flags=re.DOTALL)
         
-        # Convert markdown-style list items to bullet points
+        # Handle markdown-style lists
         text = re.sub(r'(?m)^\s*[-*]\s+(.*?)$', r'• \1', text)
         
-        # Ensure bullet points have proper spacing
+        # Ensure proper spacing for bullet points
         text = re.sub(r'•\s*', '• ', text)
         
         return text
     
-    # Process list HTML elements first
+    # Process list elements
     text = re.sub(r'<ul[^>]*>(.*?)</ul>', lambda m: process_bullet_points(m.group(1)), text, flags=re.DOTALL)
     text = re.sub(r'<ol[^>]*>(.*?)</ol>', lambda m: m.group(1), text, flags=re.DOTALL)
     
-    # Then process any standalone bullet points
+    # Handle standalone bullet points
     text = process_bullet_points(text)
     
-    # Process formatting for bold and italic
-    # For bold: LinkedIn supports *bold text* but Unicode is more reliable for mobile
-    text = re.sub(r'\*\*(.*?)\*\*', bold_replacer, text)  # **bold** to Unicode
-    text = re.sub(r'\*(.*?)\*', bold_replacer, text)      # *bold* to Unicode
-    text = re.sub(r'__(.*?)__', bold_replacer, text)      # __bold__ to Unicode
+    # Bold formatting handlers
+    def bold_to_linkedin(match):
+        # Use Unicode characters for bold in LinkedIn (more reliable)
+        return apply_style(match.group(1), bold_map)
     
-    # For italic: LinkedIn supports _italic text_ or *italic text*
-    # We'll use the _italic_ syntax which is LinkedIn's standard
-    text = re.sub(r'<i[^>]*>(.*?)</i>', r'_\1_', text, flags=re.DOTALL)       # <i>text</i> to _text_
-    text = re.sub(r'<em[^>]*>(.*?)</em>', r'_\1_', text, flags=re.DOTALL)     # <em>text</em> to _text_
+    # Convert HTML bold tags to LinkedIn formatting
+    text = re.sub(r'<b[^>]*>(.*?)</b>', lambda m: f"*{m.group(1)}*", text, flags=re.DOTALL)
+    text = re.sub(r'<strong[^>]*>(.*?)</strong>', lambda m: f"*{m.group(1)}*", text, flags=re.DOTALL)
     
-    # Process remaining HTML-like tags for bold
-    text = re.sub(r'<b[^>]*>(.*?)</b>', bold_replacer, text, flags=re.DOTALL)
-    text = re.sub(r'<strong[^>]*>(.*?)</strong>', bold_replacer, text, flags=re.DOTALL)
+    # Convert HTML italic tags to LinkedIn formatting
+    text = re.sub(r'<i[^>]*>(.*?)</i>', lambda m: f"_{m.group(1)}_", text, flags=re.DOTALL)
+    text = re.sub(r'<em[^>]*>(.*?)</em>', lambda m: f"_{m.group(1)}_", text, flags=re.DOTALL)
     
-    # Clean up any excessive spaces or newlines
+    # Handle any markdown-style formatting in the text too
+    text = re.sub(r'\*\*(.*?)\*\*', bold_to_linkedin, text)  # **bold**
+    text = re.sub(r'\*(.*?)\*', bold_to_linkedin, text)      # *bold*
+    
+    # Clean up the text
     text = re.sub(r' +', ' ', text)  # Multiple spaces to single space
     text = re.sub(r'\n\s*\n', '\n\n', text)  # Multiple newlines to double newline
     text = re.sub(r'^\s+|\s+$', '', text, flags=re.MULTILINE)  # Trim lines
