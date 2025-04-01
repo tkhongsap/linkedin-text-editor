@@ -29,7 +29,27 @@ function setupBasicEditor() {
     });
     
     document.getElementById('italic-btn').addEventListener('click', function() {
+        // Standard italic command
         document.execCommand('italic');
+        
+        // LinkedIn specific handling - ensure selection is properly marked for our backend processor
+        const selection = window.getSelection();
+        if (!selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString();
+            
+            // If there's no <em> or <i> tag applied, manually wrap with underscore
+            // This ensures our backend processor can identify it for LinkedIn formatting
+            const container = range.commonAncestorContainer;
+            const parentElement = container.nodeType === 3 ? container.parentNode : container;
+            
+            if (!parentElement.closest('em') && !parentElement.closest('i')) {
+                // Replace selection with underscore-wrapped text for our processor
+                const wrappedText = `_${selectedText}_`;
+                document.execCommand('insertText', false, wrappedText);
+            }
+        }
+        
         editor.focus();
         updatePreview();
     });
@@ -70,7 +90,25 @@ function setupBasicEditor() {
     });
     
     document.getElementById('bullet-list-btn').addEventListener('click', function() {
+        // First try standard HTML list command
         document.execCommand('insertUnorderedList');
+        
+        // Additionally, ensure bullet points are properly formatted for LinkedIn
+        // If selection is empty, just add a bullet point at cursor position
+        const selection = window.getSelection();
+        if (selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const listItem = document.createElement('li');
+            listItem.innerHTML = ' ';
+            range.insertNode(listItem);
+            
+            // Place cursor inside the list item
+            range.setStart(listItem, 0);
+            range.setEnd(listItem, 0);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        
         editor.focus();
         updatePreview();
     });
@@ -181,9 +219,21 @@ function setupBasicEditor() {
                 // We'll add a visual indicator that the text is formatted
                 const formattedTextDisplay = document.createElement('div');
                 formattedTextDisplay.className = 'formatted-text-display mt-3 p-2 border border-primary rounded bg-light';
+                
+                // Create a formatted content with helpful hints about formatting
+                const formattedContent = data.formatted_text.replace(/\n/g, '<br>');
+                
                 formattedTextDisplay.innerHTML = `
                     <div class="small text-muted mb-1">LinkedIn Formatted Text (copy this):</div>
-                    <div class="formatted-content">${data.formatted_text.replace(/\n/g, '<br>')}</div>
+                    <div class="formatted-content">${formattedContent}</div>
+                    <div class="small text-muted mt-2">
+                        <strong>Supported formats:</strong>
+                        <ul class="mb-0 ps-3">
+                            <li><strong>Bold:</strong> Use **text** or *text*</li>
+                            <li><em>Italic:</em> Use _text_</li>
+                            <li>Bullet points: Start line with - or * </li>
+                        </ul>
+                    </div>
                 `;
                 
                 // If there's already a formatted display, replace it
