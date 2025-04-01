@@ -10,11 +10,18 @@ logging.basicConfig(level=logging.DEBUG)
 # Load environment variables from .env file
 load_dotenv()
 
-# Define style maps for bold and italic using Unicode characters
+# Define style maps for formatting using Unicode characters
 bold_map = {chr(ord('A') + i): chr(0x1D400 + i) for i in range(26)}
 bold_map.update({chr(ord('a') + i): chr(0x1D41A + i) for i in range(26)})
+bold_map.update({str(i): chr(0x1D7CE + i) for i in range(10)})  # Add bold numbers
+
 italic_map = {chr(ord('A') + i): chr(0x1D434 + i) for i in range(26)}
 italic_map.update({chr(ord('a') + i): chr(0x1D44E + i) for i in range(26)})
+
+# Common punctuation and symbols to preserve in formatting
+for char in "!@#$%^&*()_+-=[]{}|;:'\",.<>/?`~ ":
+    bold_map[char] = char
+    italic_map[char] = char
 
 # Function to apply a style to text
 def apply_style(text, style_map):
@@ -22,12 +29,30 @@ def apply_style(text, style_map):
 
 # Function to parse text and apply styles based on markers
 def parse_text(text):
+    # Handle special formatting cases - we'll break the text into segments
+    # so we can apply different formatting to different parts
+    
+    # Bold text replacer
     def bold_replacer(match):
         return apply_style(match.group(1), bold_map)
+    
+    # Italic text replacer
     def italic_replacer(match):
         return apply_style(match.group(1), italic_map)
-    text = re.sub(r'\*(.*?)\*', bold_replacer, text)
-    text = re.sub(r'_(.*?)_', italic_replacer, text)
+    
+    # Apply formatting - order matters to handle nested formatting
+    # Process all markdown-style formatting markers
+    text = re.sub(r'\*\*(.*?)\*\*', bold_replacer, text)  # **bold** syntax
+    text = re.sub(r'\*(.*?)\*', bold_replacer, text)      # *bold* syntax (also common)
+    text = re.sub(r'__(.*?)__', bold_replacer, text)      # __bold__ syntax
+    text = re.sub(r'_(.*?)_', italic_replacer, text)      # _italic_ syntax
+    
+    # Process HTML-like tags (common in rich text editors)
+    text = re.sub(r'<b>(.*?)</b>', bold_replacer, text)           # <b>bold</b>
+    text = re.sub(r'<strong>(.*?)</strong>', bold_replacer, text) # <strong>bold</strong>
+    text = re.sub(r'<i>(.*?)</i>', italic_replacer, text)         # <i>italic</i>
+    text = re.sub(r'<em>(.*?)</em>', italic_replacer, text)       # <em>italic</em>
+    
     return text
 
 # Initialize the Flask app

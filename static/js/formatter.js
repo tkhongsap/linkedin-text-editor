@@ -118,7 +118,8 @@ function setupBasicEditor() {
     
     // Copy text button
     document.getElementById('copy-btn').addEventListener('click', function() {
-        const formattedText = previewContent.textContent;
+        // Get the formatted text with Unicode characters from the data attribute
+        const formattedText = previewContent.getAttribute('data-formatted-text') || previewContent.textContent;
         navigator.clipboard.writeText(formattedText)
             .then(() => {
                 this.innerHTML = '<i class="bi bi-check2"></i> Copied!';
@@ -158,37 +159,50 @@ function setupBasicEditor() {
         // Format the text using the backend API if needed
         const plainText = previewContent.textContent;
         if (plainText && plainText.trim() !== '') {
-            formatText(plainText);
+            fetch('/api/format', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: plainText }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error formatting text:', data.error);
+                    return;
+                }
+                
+                // Store the formatted text for copy functionality
+                previewContent.setAttribute('data-formatted-text', data.formatted_text);
+                console.log('Formatted text:', data.formatted_text);
+                
+                // Display formatted text in preview
+                // We'll add a visual indicator that the text is formatted
+                const formattedTextDisplay = document.createElement('div');
+                formattedTextDisplay.className = 'formatted-text-display mt-3 p-2 border border-primary rounded bg-light';
+                formattedTextDisplay.innerHTML = `
+                    <div class="small text-muted mb-1">LinkedIn Formatted Text (copy this):</div>
+                    <div class="formatted-content">${data.formatted_text.replace(/\n/g, '<br>')}</div>
+                `;
+                
+                // If there's already a formatted display, replace it
+                const existingDisplay = previewContent.querySelector('.formatted-text-display');
+                if (existingDisplay) {
+                    existingDisplay.remove();
+                }
+                
+                // Append the formatted display to the preview content
+                previewContent.appendChild(formattedTextDisplay);
+            })
+            .catch(error => {
+                console.error('Error calling format API:', error);
+            });
         }
     }
     
     // Initial update of preview
     updatePreview();
-}
-
-// Function to send text to backend for formatting
-function formatText(text) {
-    fetch('/api/format', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: text }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            console.error('Error formatting text:', data.error);
-            return;
-        }
-        
-        // Use the formatted text if needed
-        console.log('Formatted text:', data.formatted_text);
-        // You could update the preview with this text if needed
-    })
-    .catch(error => {
-        console.error('Error calling format API:', error);
-    });
 }
 
 // Mobile-specific enhancements
