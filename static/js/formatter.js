@@ -23,31 +23,51 @@ function setupBasicEditor() {
     
     // Basic formatting buttons functionality
     document.getElementById('bold-btn').addEventListener('click', function() {
-        document.execCommand('bold');
+        // LinkedIn supports *text* or **text** syntax for bold
+        const selection = window.getSelection();
+        if (!selection.isCollapsed) {
+            // Get selected text
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString();
+            
+            // Replace selected text with *text* format for LinkedIn
+            document.execCommand('insertText', false, `*${selectedText}*`);
+        } else {
+            // If no selection, insert asterisks and place cursor between them
+            document.execCommand('insertText', false, '**');
+            
+            // Move cursor between asterisks
+            const newRange = selection.getRangeAt(0);
+            newRange.setStart(newRange.startContainer, newRange.startOffset - 1);
+            newRange.setEnd(newRange.endContainer, newRange.endOffset - 1);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+        }
+        
         editor.focus();
         updatePreview();
     });
     
     document.getElementById('italic-btn').addEventListener('click', function() {
-        // Standard italic command
-        document.execCommand('italic');
-        
-        // LinkedIn specific handling - ensure selection is properly marked for our backend processor
+        // LinkedIn uses _text_ syntax for italic
         const selection = window.getSelection();
         if (!selection.isCollapsed) {
+            // Get selected text
             const range = selection.getRangeAt(0);
             const selectedText = range.toString();
             
-            // If there's no <em> or <i> tag applied, manually wrap with underscore
-            // This ensures our backend processor can identify it for LinkedIn formatting
-            const container = range.commonAncestorContainer;
-            const parentElement = container.nodeType === 3 ? container.parentNode : container;
+            // Replace selected text with _text_ format for LinkedIn
+            document.execCommand('insertText', false, `_${selectedText}_`);
+        } else {
+            // If no selection, insert underscores and place cursor between them
+            document.execCommand('insertText', false, '__');
             
-            if (!parentElement.closest('em') && !parentElement.closest('i')) {
-                // Replace selection with underscore-wrapped text for our processor
-                const wrappedText = `_${selectedText}_`;
-                document.execCommand('insertText', false, wrappedText);
-            }
+            // Move cursor between underscores
+            const newRange = selection.getRangeAt(0);
+            newRange.setStart(newRange.startContainer, newRange.startOffset - 1);
+            newRange.setEnd(newRange.endContainer, newRange.endOffset - 1);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
         }
         
         editor.focus();
@@ -90,23 +110,23 @@ function setupBasicEditor() {
     });
     
     document.getElementById('bullet-list-btn').addEventListener('click', function() {
-        // First try standard HTML list command
-        document.execCommand('insertUnorderedList');
-        
-        // Additionally, ensure bullet points are properly formatted for LinkedIn
-        // If selection is empty, just add a bullet point at cursor position
+        // LinkedIn works better with actual bullet points rather than HTML lists
         const selection = window.getSelection();
+        
         if (selection.isCollapsed) {
+            // If no text is selected, insert a bullet point at cursor
+            document.execCommand('insertText', false, '• ');
+        } else {
+            // If text is selected, create bullet points for each line
             const range = selection.getRangeAt(0);
-            const listItem = document.createElement('li');
-            listItem.innerHTML = ' ';
-            range.insertNode(listItem);
+            const selectedText = range.toString();
             
-            // Place cursor inside the list item
-            range.setStart(listItem, 0);
-            range.setEnd(listItem, 0);
-            selection.removeAllRanges();
-            selection.addRange(range);
+            // Split text into lines and add bullet points
+            const lines = selectedText.split('\n');
+            const bulletedLines = lines.map(line => `• ${line.trim()}`).join('\n');
+            
+            // Replace selection with bulleted text
+            document.execCommand('insertText', false, bulletedLines);
         }
         
         editor.focus();
