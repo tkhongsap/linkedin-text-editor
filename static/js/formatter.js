@@ -29,26 +29,29 @@ function setupBasicEditor() {
     });
     
     document.getElementById('italic-btn').addEventListener('click', function() {
-        // For LinkedIn compatibility, we'll use underscores for italics
-        // This is a markdown-style approach that LinkedIn seems to preserve
-        const selection = window.getSelection();
+        // Standard italic command
+        document.execCommand('italic');
         
+        // LinkedIn specific handling - ensure selection is properly marked for our backend processor
+        const selection = window.getSelection();
         if (!selection.isCollapsed) {
             const range = selection.getRangeAt(0);
             const selectedText = range.toString();
             
-            // Replace selection with underscore-wrapped text
-            const wrappedText = `_${selectedText}_`;
-            document.execCommand('insertText', false, wrappedText);
+            // If there's no <em> or <i> tag applied, manually wrap with underscore
+            // This ensures our backend processor can identify it for LinkedIn formatting
+            const container = range.commonAncestorContainer;
+            const parentElement = container.nodeType === 3 ? container.parentNode : container;
             
-            // Update the preview
-            updatePreview();
-        } else {
-            // If no selection, let the user know
-            alert('Please select some text to italicize first.');
+            if (!parentElement.closest('em') && !parentElement.closest('i')) {
+                // Replace selection with underscore-wrapped text for our processor
+                const wrappedText = `_${selectedText}_`;
+                document.execCommand('insertText', false, wrappedText);
+            }
         }
         
         editor.focus();
+        updatePreview();
     });
     
     document.getElementById('underline-btn').addEventListener('click', function() {
@@ -87,28 +90,23 @@ function setupBasicEditor() {
     });
     
     document.getElementById('bullet-list-btn').addEventListener('click', function() {
-        // Instead of using HTML lists, insert plain text bullet markers
-        // that the backend can process correctly
+        // First try standard HTML list command
+        document.execCommand('insertUnorderedList');
         
+        // Additionally, ensure bullet points are properly formatted for LinkedIn
+        // If selection is empty, just add a bullet point at cursor position
         const selection = window.getSelection();
-        const range = selection.getRangeAt(0);
-        
-        // Get the current line
-        let node = range.startContainer;
-        let startOffset = range.startOffset;
-        
-        // Insert a plain "- " at the beginning of the line or at cursor
-        if (node.nodeType === 3) { // Text node
-            // If we're at the beginning of a line or this is an empty line, insert the bullet
-            if (startOffset === 0 || node.textContent.substring(0, startOffset).endsWith('\n')) {
-                document.execCommand('insertText', false, '- ');
-            } else {
-                // Otherwise insert a newline followed by the bullet
-                document.execCommand('insertText', false, '\n- ');
-            }
-        } else {
-            // If not in a text node, just insert the bullet
-            document.execCommand('insertText', false, '- ');
+        if (selection.isCollapsed) {
+            const range = selection.getRangeAt(0);
+            const listItem = document.createElement('li');
+            listItem.innerHTML = ' ';
+            range.insertNode(listItem);
+            
+            // Place cursor inside the list item
+            range.setStart(listItem, 0);
+            range.setEnd(listItem, 0);
+            selection.removeAllRanges();
+            selection.addRange(range);
         }
         
         editor.focus();
@@ -116,28 +114,7 @@ function setupBasicEditor() {
     });
     
     document.getElementById('ordered-list-btn').addEventListener('click', function() {
-        // Instead of using HTML ordered lists, insert plain text numbering
-        // Get the selected text or cursor position
-        const selection = window.getSelection();
-        const range = selection.getRangeAt(0);
-        
-        // Insert a "1. " at the beginning of the line or at cursor
-        let node = range.startContainer;
-        let startOffset = range.startOffset;
-        
-        if (node.nodeType === 3) { // Text node
-            // If we're at the beginning of a line or this is an empty line, insert the numbering
-            if (startOffset === 0 || node.textContent.substring(0, startOffset).endsWith('\n')) {
-                document.execCommand('insertText', false, '1. ');
-            } else {
-                // Otherwise insert a newline followed by the numbering
-                document.execCommand('insertText', false, '\n1. ');
-            }
-        } else {
-            // If not in a text node, just insert the numbering
-            document.execCommand('insertText', false, '1. ');
-        }
-        
+        document.execCommand('insertOrderedList');
         editor.focus();
         updatePreview();
     });
@@ -182,9 +159,32 @@ function setupBasicEditor() {
         // Get the formatted text with Unicode characters from the data attribute
         let formattedText = previewContent.getAttribute('data-formatted-text') || previewContent.textContent;
         
-        // Use the Clipboard API for reliable plain text copying which works best for LinkedIn
-        navigator.clipboard.writeText(formattedText)
-            .then(() => {
+        // Process any special markers that our backend added for formatting
+        
+        // For the LinkedIn text formatter, we're now using Unicode characters
+        // for all formatting (bold, italic, bullets) which should paste correctly
+        // No additional processing needed here - the backend has done the work
+        
+        // Create a rich-text div that will be used for copying with formatting intact
+        const richTextDiv = document.createElement('div');
+        richTextDiv.style.position = 'absolute';
+        richTextDiv.style.left = '-9999px';
+        richTextDiv.contentEditable = 'true';
+        richTextDiv.innerHTML = formattedText;
+        document.body.appendChild(richTextDiv);
+        
+        // Select the rich text content
+        richTextDiv.focus();
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(richTextDiv);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        try {
+            // Execute the copy command to get the formatted text in clipboard
+            const successful = document.execCommand('copy');
+            if (successful) {
                 this.innerHTML = '<i class="bi bi-check2"></i> Copied!';
                 this.classList.add('btn-success');
                 
@@ -205,36 +205,33 @@ function setupBasicEditor() {
                     this.innerHTML = '<i class="bi bi-clipboard"></i> Copy text';
                     this.classList.remove('btn-success');
                 }, 3000);
-            })
-            .catch(err => {
-                console.error('Clipboard API error: ', err);
-                
-                // Fallback to execCommand if Clipboard API fails
-                try {
-                    // Create a temporary element for copying
-                    const tempElement = document.createElement('textarea');
-                    tempElement.value = formattedText;
-                    tempElement.style.position = 'absolute';
-                    tempElement.style.left = '-9999px';
-                    document.body.appendChild(tempElement);
-                    
-                    // Select and copy the text
-                    tempElement.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(tempElement);
-                    
-                    this.innerHTML = '<i class="bi bi-check2"></i> Copied!';
-                    this.classList.add('btn-success');
+            } else {
+                throw new Error('Copy command was unsuccessful');
+            }
+        } catch (err) {
+            console.error('Error copying text: ', err);
+            
+            // Fallback to the Clipboard API if execCommand fails
+            // Note: This will lose formatting, but at least the text will be copied
+            navigator.clipboard.writeText(richTextDiv.textContent)
+                .then(() => {
+                    this.innerHTML = '<i class="bi bi-check2"></i> Copied (plain text only)';
+                    this.classList.add('btn-warning');
                     
                     setTimeout(() => {
                         this.innerHTML = '<i class="bi bi-clipboard"></i> Copy text';
-                        this.classList.remove('btn-success');
+                        this.classList.remove('btn-warning');
                     }, 2000);
-                } catch (error) {
-                    console.error('execCommand error: ', error);
+                })
+                .catch(err => {
+                    console.error('Clipboard API error: ', err);
                     alert('Failed to copy text. Please try again or copy manually.');
-                }
-            });
+                });
+        } finally {
+            // Clean up
+            selection.removeAllRanges();
+            document.body.removeChild(richTextDiv);
+        }
     });
     
     // Placeholder functionality for other buttons

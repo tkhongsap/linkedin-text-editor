@@ -16,14 +16,12 @@ bold_map = {chr(ord('A') + i): chr(0x1D400 + i) for i in range(26)}  # Uppercase
 bold_map.update({chr(ord('a') + i): chr(0x1D41A + i) for i in range(26)})  # Lowercase
 bold_map.update({str(i): chr(0x1D7CE + i) for i in range(10)})  # Numbers
 
-# LinkedIn-compatible italic - try a different approach using single letter modifiers
-# Previously we used Mathematical Sans-Serif Italic which didn't work with LinkedIn
-# Let's try using normal characters with a combining mark for italics
-italic_mark = '\u0301'  # Combining acute accent - can be visible on some chars
-# For better LinkedIn compatibility, let's try a different approach:
-# Instead of using special Unicode blocks, use visual markers that LinkedIn preserves
-italic_prefix = "_"
-italic_suffix = "_"
+# LinkedIn-compatible italic - we'll use Mathematical Sans-Serif Italic characters
+# These are in the U+1D608 to U+1D63B range for uppercase and lowercase
+italic_map = {chr(ord('A') + i): chr(0x1D608 + i) for i in range(26)}  # Uppercase italic
+italic_map.update({chr(ord('a') + i): chr(0x1D622 + i) for i in range(26)})  # Lowercase italic
+# Numbers in italic use sans-serif italic digits
+italic_map.update({str(i): chr(0x1D7E2 + i) for i in range(10)})  # Numbers in italic
 
 # LinkedIn-compatible bullets
 # We'll use actual bullet characters that LinkedIn preserves
@@ -46,16 +44,11 @@ bullet_map = {
 # Common punctuation and symbols to preserve in formatting
 for char in "!@#$%^&*()_+-=[]{}|;:'\",.<>/?`~ \n":
     bold_map[char] = char
+    italic_map[char] = char
 
 # Function to apply a style to text
 def apply_style(text, style_map):
     return ''.join(style_map.get(char, char) for char in text)
-
-# Function to apply italic style using the new approach
-def apply_italic(text):
-    # For italics, we'll try the marker approach since Unicode isn't working well
-    # LinkedIn seems to accept underscores for emphasis when pasted
-    return f"{italic_prefix}{text}{italic_suffix}"
 
 # Function to parse text and apply styles based on markers
 def parse_text(text):
@@ -68,7 +61,7 @@ def parse_text(text):
     
     # Italic text replacer
     def italic_replacer(match):
-        return apply_italic(match.group(1))
+        return apply_style(match.group(1), italic_map)
     
     # Convert bullet lists properly
     def process_bullet_points(text):
@@ -76,11 +69,10 @@ def parse_text(text):
         text = re.sub(r'<li>(.*?)</li>', r'• \1\n', text)
         
         # Process bullet points at the start of lines (common in plain text)
-        # Look for lines that start with - or * followed by a space
-        text = re.sub(r'(?m)^(\s*)[-*]\s+(.*?)$', r'\1• \2', text)
+        text = re.sub(r'^\s*[-*]\s+(.*?)$', r'• \1', text, flags=re.MULTILINE)
         
-        # Convert markdown list items (with multi-line support)
-        text = re.sub(r'(?m)^(\s*)[-*+]\s+(.*?)$', r'\1• \2', text)
+        # Convert markdown list items
+        text = re.sub(r'^\s*[-*+]\s+(.*?)$', r'• \1', text, flags=re.MULTILINE)
         
         # Handle ordered lists from HTML
         # Convert to numbered format that LinkedIn accepts
@@ -94,12 +86,8 @@ def parse_text(text):
             # Replace the original <ol> content with the numbered list
             text = text.replace(f"<ol>{ol_content}</ol>", numbered_list)
         
-        # Also look for manually numbered lists (1. text)
-        # Ensure they have proper spacing for LinkedIn
-        text = re.sub(r'(?m)^(\s*)(\d+)\.(\S)', r'\1\2. \3', text)
-        
-        # Ensure each bullet point is properly spaced for LinkedIn
-        # Add a non-breaking space before bullet points
+        # Ensure each bullet point line starts with a space before the bullet
+        # This helps LinkedIn preserve the bullet formatting
         text = re.sub(r'(^|\n)•', r'\1 •', text)
         
         return text
@@ -162,17 +150,7 @@ def format_text():
         # This helps LinkedIn preserve bullet points when pasted
         formatted_text = re.sub(r'(^|\n)(•)', r'\1 \2', formatted_text)
         
-        # Ensure bullet points have a space after them for better LinkedIn display
-        formatted_text = re.sub(r'(•)([^\s])', r'\1 \2', formatted_text)
-        
-        # Ensure numbered lists are properly spaced for LinkedIn
-        formatted_text = re.sub(r'(^|\n)(\d+)\.(\S)', r'\1\2. \3', formatted_text)
-        
-        # Log for debugging
-        logging.debug(f"Original text length: {len(user_text)}")
-        logging.debug(f"Formatted text length: {len(formatted_text)}")
         logging.debug(f"Formatted text: {formatted_text}")
-        
         return jsonify({"formatted_text": formatted_text})
     except Exception as error:
         logging.error(f"Error processing text: {error}")
