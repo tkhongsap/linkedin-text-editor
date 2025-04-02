@@ -29,29 +29,26 @@ function setupBasicEditor() {
     });
     
     document.getElementById('italic-btn').addEventListener('click', function() {
-        // Standard italic command
-        document.execCommand('italic');
-        
-        // LinkedIn specific handling - ensure selection is properly marked for our backend processor
+        // For LinkedIn compatibility, we'll use underscores for italics
+        // This is a markdown-style approach that LinkedIn seems to preserve
         const selection = window.getSelection();
+        
         if (!selection.isCollapsed) {
             const range = selection.getRangeAt(0);
             const selectedText = range.toString();
             
-            // If there's no <em> or <i> tag applied, manually wrap with underscore
-            // This ensures our backend processor can identify it for LinkedIn formatting
-            const container = range.commonAncestorContainer;
-            const parentElement = container.nodeType === 3 ? container.parentNode : container;
+            // Replace selection with underscore-wrapped text
+            const wrappedText = `_${selectedText}_`;
+            document.execCommand('insertText', false, wrappedText);
             
-            if (!parentElement.closest('em') && !parentElement.closest('i')) {
-                // Replace selection with underscore-wrapped text for our processor
-                const wrappedText = `_${selectedText}_`;
-                document.execCommand('insertText', false, wrappedText);
-            }
+            // Update the preview
+            updatePreview();
+        } else {
+            // If no selection, let the user know
+            alert('Please select some text to italicize first.');
         }
         
         editor.focus();
-        updatePreview();
     });
     
     document.getElementById('underline-btn').addEventListener('click', function() {
@@ -119,7 +116,28 @@ function setupBasicEditor() {
     });
     
     document.getElementById('ordered-list-btn').addEventListener('click', function() {
-        document.execCommand('insertOrderedList');
+        // Instead of using HTML ordered lists, insert plain text numbering
+        // Get the selected text or cursor position
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        
+        // Insert a "1. " at the beginning of the line or at cursor
+        let node = range.startContainer;
+        let startOffset = range.startOffset;
+        
+        if (node.nodeType === 3) { // Text node
+            // If we're at the beginning of a line or this is an empty line, insert the numbering
+            if (startOffset === 0 || node.textContent.substring(0, startOffset).endsWith('\n')) {
+                document.execCommand('insertText', false, '1. ');
+            } else {
+                // Otherwise insert a newline followed by the numbering
+                document.execCommand('insertText', false, '\n1. ');
+            }
+        } else {
+            // If not in a text node, just insert the numbering
+            document.execCommand('insertText', false, '1. ');
+        }
+        
         editor.focus();
         updatePreview();
     });
