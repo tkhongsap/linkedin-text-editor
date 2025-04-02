@@ -157,33 +157,70 @@ function setupBasicEditor() {
     // Copy text button
     document.getElementById('copy-btn').addEventListener('click', function() {
         // Get the formatted text with Unicode characters from the data attribute
-        const formattedText = previewContent.getAttribute('data-formatted-text') || previewContent.textContent;
+        let formattedText = previewContent.getAttribute('data-formatted-text') || previewContent.textContent;
         
-        // Create a temporary element to ensure the formatted content is preserved
-        const tempElement = document.createElement('div');
-        tempElement.style.position = 'absolute';
-        tempElement.style.left = '-9999px';
-        tempElement.innerHTML = formattedText;
-        document.body.appendChild(tempElement);
+        // Process any special markers that our backend added for formatting
         
-        // Use a different approach for clipboard copying to preserve formatting
-        // Creating a selection and copying the text with the formatting intact
+        // Handle italic markers
+        // We need to replace these markers with actual italic text using HTML
+        // LinkedIn only accepts the italic formatting when it's actual HTML
+        const italicRegex = /<i-marker>(.*?)<\/i-marker>/g;
+        formattedText = formattedText.replace(italicRegex, '<i>$1</i>');
+        
+        // Handle bullet point markers
+        // Replace with proper HTML list for better copying to LinkedIn
+        const bulletRegex = /<bullet-marker>(.*?)<\/bullet-marker>/g;
+        formattedText = formattedText.replace(bulletRegex, '<span style="list-style-type: disc;">$1</span>');
+        
+        // Improve list formatting for LinkedIn
+        // Convert lines starting with bullets to proper list items
+        const bulletLineRegex = /^(\s*)• (.*)$/gm;
+        formattedText = formattedText.replace(bulletLineRegex, '<li>$2</li>');
+        
+        // Convert numbered list items
+        const numberedLineRegex = /^(\s*)(\d+)\. (.*)$/gm;
+        formattedText = formattedText.replace(numberedLineRegex, '<li>$3</li>');
+        
+        // Create a rich-text div that will be used for copying with formatting intact
+        const richTextDiv = document.createElement('div');
+        richTextDiv.style.position = 'absolute';
+        richTextDiv.style.left = '-9999px';
+        richTextDiv.contentEditable = 'true';
+        richTextDiv.innerHTML = formattedText;
+        document.body.appendChild(richTextDiv);
+        
+        // Select the rich text content
+        richTextDiv.focus();
         const selection = window.getSelection();
         const range = document.createRange();
-        range.selectNodeContents(tempElement);
+        range.selectNodeContents(richTextDiv);
         selection.removeAllRanges();
         selection.addRange(range);
         
         try {
+            // Execute the copy command to get the formatted text in clipboard
             const successful = document.execCommand('copy');
             if (successful) {
                 this.innerHTML = '<i class="bi bi-check2"></i> Copied!';
                 this.classList.add('btn-success');
                 
+                // Create a feedback message explaining what happened
+                const feedbackMsg = document.createElement('div');
+                feedbackMsg.className = 'alert alert-success my-2 small';
+                feedbackMsg.innerHTML = '<i class="bi bi-info-circle"></i> ' +
+                    'Text copied with formatting. Paste directly into your LinkedIn post.';
+                
+                // Insert the feedback message after the copy button
+                this.parentNode.insertBefore(feedbackMsg, this.nextSibling);
+                
+                // Remove the feedback message after a delay
                 setTimeout(() => {
+                    if (feedbackMsg.parentNode) {
+                        feedbackMsg.parentNode.removeChild(feedbackMsg);
+                    }
                     this.innerHTML = '<i class="bi bi-clipboard"></i> Copy text';
                     this.classList.remove('btn-success');
-                }, 2000);
+                }, 3000);
             } else {
                 throw new Error('Copy command was unsuccessful');
             }
@@ -191,14 +228,15 @@ function setupBasicEditor() {
             console.error('Error copying text: ', err);
             
             // Fallback to the Clipboard API if execCommand fails
-            navigator.clipboard.writeText(formattedText)
+            // Note: This will lose formatting, but at least the text will be copied
+            navigator.clipboard.writeText(richTextDiv.textContent)
                 .then(() => {
-                    this.innerHTML = '<i class="bi bi-check2"></i> Copied!';
-                    this.classList.add('btn-success');
+                    this.innerHTML = '<i class="bi bi-check2"></i> Copied (plain text only)';
+                    this.classList.add('btn-warning');
                     
                     setTimeout(() => {
                         this.innerHTML = '<i class="bi bi-clipboard"></i> Copy text';
-                        this.classList.remove('btn-success');
+                        this.classList.remove('btn-warning');
                     }, 2000);
                 })
                 .catch(err => {
@@ -208,7 +246,7 @@ function setupBasicEditor() {
         } finally {
             // Clean up
             selection.removeAllRanges();
-            document.body.removeChild(tempElement);
+            document.body.removeChild(richTextDiv);
         }
     });
     
@@ -258,13 +296,23 @@ function setupBasicEditor() {
                 const formattedTextDisplay = document.createElement('div');
                 formattedTextDisplay.className = 'formatted-text-display mt-3 p-2 border border-primary rounded bg-light';
                 
-                // Create a formatted content with helpful hints about formatting
-                // Highlight the Unicode characters so users can see they're different
-                const formattedContent = data.formatted_text.replace(/\n/g, '<br>');
+                // Process the text for display in the preview
+                // First, convert newlines to <br> tags
+                let processedContent = data.formatted_text.replace(/\n/g, '<br>');
+                
+                // Replace the italic markers with actual italic HTML for display
+                processedContent = processedContent.replace(/<i-marker>(.*?)<\/i-marker>/g, '<em>$1</em>');
+                
+                // Process bullet point markers for the display
+                processedContent = processedContent.replace(/<bullet-marker>(.*?)<\/bullet-marker>/g, '<span class="text-primary">$1</span>');
+                
+                // Highlight bullet points for better visibility
+                processedContent = processedContent.replace(/^\s*•\s+/gm, '<span class="text-primary">• </span>');
+                processedContent = processedContent.replace(/^(\d+)\.\s+/gm, '<span class="text-primary">$1. </span>');
                 
                 formattedTextDisplay.innerHTML = `
                     <div class="small text-muted mb-1">LinkedIn Formatted Text (copy this):</div>
-                    <div class="formatted-content bg-white p-2 rounded border">${formattedContent}</div>
+                    <div class="formatted-content bg-white p-2 rounded border">${processedContent}</div>
                     <div class="small text-muted mt-2">
                         <strong>Supported formats:</strong>
                         <ul class="mb-0 ps-3">
@@ -276,8 +324,11 @@ function setupBasicEditor() {
                     </div>
                     <div class="small text-success mt-2">
                         <i class="bi bi-info-circle"></i> 
-                        Text has been converted to special Unicode characters that LinkedIn will display correctly. 
-                        Just click "Copy text" and paste directly into LinkedIn.
+                        Text has been prepared for LinkedIn formatting. Just click "Copy text" and paste directly into LinkedIn.
+                    </div>
+                    <div class="small text-info mt-1">
+                        <i class="bi bi-bulb"></i> 
+                        LinkedIn may convert some formatting to its own style when pasted.
                     </div>
                 `;
                 

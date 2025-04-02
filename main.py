@@ -16,25 +16,34 @@ bold_map = {chr(ord('A') + i): chr(0x1D400 + i) for i in range(26)}  # Uppercase
 bold_map.update({chr(ord('a') + i): chr(0x1D41A + i) for i in range(26)})  # Lowercase
 bold_map.update({str(i): chr(0x1D7CE + i) for i in range(10)})  # Numbers
 
-# Mathematical Italic characters (for italic formatting)
-# LinkedIn supports Mathematical Italic Unicode range
-italic_map = {chr(ord('A') + i): chr(0x1D434 + i) for i in range(26)}  # Uppercase
-italic_map.update({chr(ord('a') + i): chr(0x1D44E + i) for i in range(26)})  # Lowercase
-# Also add numbers with italic styling
-italic_map.update({str(i): chr(0x1D7F6 + i) for i in range(10)})  # Numbers in italic
+# After testing, we've found that LinkedIn doesn't properly support Mathematical Italic Unicode
+# Instead, we'll mark the text for italic in a way that our copy function can handle specially
+italic_map = {}  # We'll handle italics differently
+
+# For LinkedIn, we need to create a special mapping for each character
+# Since LinkedIn doesn't properly support the Mathematical Italic Unicode,
+# we'll mark text with special markers that our frontend will handle
+for i in range(26):
+    italic_map[chr(ord('A') + i)] = f"<i-marker>{chr(ord('A') + i)}</i-marker>"
+    italic_map[chr(ord('a') + i)] = f"<i-marker>{chr(ord('a') + i)}</i-marker>"
+
+# Numbers in italic (special handling in frontend)
+for i in range(10):
+    italic_map[str(i)] = f"<i-marker>{i}</i-marker>"
 
 # Special characters for bullet points in LinkedIn
+# LinkedIn appears to only consistently preserve • as a bullet point character
 bullet_map = {
-    '•': '•',           # Standard bullet point (U+2022)
-    '○': '○',           # White bullet (U+25E6)
-    '▪': '▪',           # Black small square (U+25AA)
-    '■': '■',           # Black square (U+25A0)
-    '►': '►',           # Black right-pointing triangle (U+25B6)
-    '★': '★',           # Black star (U+2605)
-    '✓': '✓',           # Check mark (U+2713)
-    '✔': '✔',           # Heavy check mark (U+2714)
-    '-': '—',           # Em dash (for list items)
-    '*': '•',           # Asterisk to bullet conversion
+    '•': '<bullet-marker>•</bullet-marker>',    # Standard bullet point (U+2022)
+    '○': '<bullet-marker>•</bullet-marker>',    # White bullet converted to standard (LinkedIn friendly)
+    '▪': '<bullet-marker>•</bullet-marker>',    # Black small square converted to standard
+    '■': '<bullet-marker>•</bullet-marker>',    # Black square converted to standard
+    '►': '<bullet-marker>•</bullet-marker>',    # Black right-pointing triangle converted to standard
+    '★': '<bullet-marker>•</bullet-marker>',    # Black star converted to standard
+    '✓': '<bullet-marker>•</bullet-marker>',    # Check mark converted to standard
+    '✔': '<bullet-marker>•</bullet-marker>',    # Heavy check mark converted to standard
+    '-': '<bullet-marker>•</bullet-marker>',    # Dash converted to standard bullet
+    '*': '<bullet-marker>•</bullet-marker>',    # Asterisk converted to standard bullet
 }
 
 # Common punctuation and symbols to preserve in formatting
