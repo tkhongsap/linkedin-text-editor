@@ -69,10 +69,11 @@ def parse_text(text):
         text = re.sub(r'<li>(.*?)</li>', r'• \1\n', text)
         
         # Process bullet points at the start of lines (common in plain text)
-        text = re.sub(r'^\s*[-*]\s+(.*?)$', r'• \1', text, flags=re.MULTILINE)
+        # Look for lines that start with - or * followed by a space
+        text = re.sub(r'(?m)^(\s*)[-*]\s+(.*?)$', r'\1• \2', text)
         
-        # Convert markdown list items
-        text = re.sub(r'^\s*[-*+]\s+(.*?)$', r'• \1', text, flags=re.MULTILINE)
+        # Convert markdown list items (with multi-line support)
+        text = re.sub(r'(?m)^(\s*)[-*+]\s+(.*?)$', r'\1• \2', text)
         
         # Handle ordered lists from HTML
         # Convert to numbered format that LinkedIn accepts
@@ -86,8 +87,8 @@ def parse_text(text):
             # Replace the original <ol> content with the numbered list
             text = text.replace(f"<ol>{ol_content}</ol>", numbered_list)
         
-        # Ensure each bullet point line starts with a space before the bullet
-        # This helps LinkedIn preserve the bullet formatting
+        # Ensure each bullet point is properly spaced for LinkedIn
+        # Add a non-breaking space before bullet points
         text = re.sub(r'(^|\n)•', r'\1 •', text)
         
         return text
@@ -150,7 +151,14 @@ def format_text():
         # This helps LinkedIn preserve bullet points when pasted
         formatted_text = re.sub(r'(^|\n)(•)', r'\1 \2', formatted_text)
         
+        # Ensure bullet points have a space after them for better LinkedIn display
+        formatted_text = re.sub(r'(•)([^\s])', r'\1 \2', formatted_text)
+        
+        # Log for debugging
+        logging.debug(f"Original text length: {len(user_text)}")
+        logging.debug(f"Formatted text length: {len(formatted_text)}")
         logging.debug(f"Formatted text: {formatted_text}")
+        
         return jsonify({"formatted_text": formatted_text})
     except Exception as error:
         logging.error(f"Error processing text: {error}")
