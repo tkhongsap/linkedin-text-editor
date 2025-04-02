@@ -17,9 +17,11 @@ bold_map.update({chr(ord('a') + i): chr(0x1D41A + i) for i in range(26)})  # Low
 bold_map.update({str(i): chr(0x1D7CE + i) for i in range(10)})  # Numbers
 
 # Mathematical Italic characters (for italic formatting)
-# These are characters that LinkedIn actually displays as italic
+# LinkedIn supports Mathematical Italic Unicode range
 italic_map = {chr(ord('A') + i): chr(0x1D434 + i) for i in range(26)}  # Uppercase
 italic_map.update({chr(ord('a') + i): chr(0x1D44E + i) for i in range(26)})  # Lowercase
+# Also add numbers with italic styling
+italic_map.update({str(i): chr(0x1D7F6 + i) for i in range(10)})  # Numbers in italic
 
 # Special characters for bullet points in LinkedIn
 bullet_map = {
@@ -68,6 +70,18 @@ def parse_text(text):
         # Convert markdown list items
         text = re.sub(r'^\s*[-*+]\s+(.*?)$', r'• \1', text, flags=re.MULTILINE)
         
+        # Handle ordered lists from HTML
+        # Convert to numbered format that LinkedIn accepts
+        ordered_list_pattern = r'<ol>(.*?)</ol>'
+        ordered_list_matches = re.findall(ordered_list_pattern, text, re.DOTALL)
+        for ol_content in ordered_list_matches:
+            # Extract list items
+            items = re.findall(r'<li>(.*?)</li>', ol_content)
+            # Create formatted numbered list
+            numbered_list = '\n'.join([f"{i+1}. {item}" for i, item in enumerate(items)])
+            # Replace the original <ol> content with the numbered list
+            text = text.replace(f"<ol>{ol_content}</ol>", numbered_list)
+        
         return text
 
     # Process bullet points first
@@ -114,7 +128,20 @@ def format_text():
     try:
         data = request.get_json()
         user_text = data.get('text', '')
+        
+        # Clean up any invisible formatting that might cause issues
+        user_text = re.sub(r'[\u200B-\u200F\uFEFF]', '', user_text)
+        
+        # Process the text for LinkedIn formatting
         formatted_text = parse_text(user_text)
+        
+        # Ensure all line breaks are consistent for LinkedIn
+        formatted_text = re.sub(r'\r\n', '\n', formatted_text)
+        
+        # Add a non-breaking space at the beginning of lines starting with bullet points
+        # This helps LinkedIn preserve bullet points when pasted
+        formatted_text = re.sub(r'(^|\n)(•)', r'\1 \2', formatted_text)
+        
         logging.debug(f"Formatted text: {formatted_text}")
         return jsonify({"formatted_text": formatted_text})
     except Exception as error:

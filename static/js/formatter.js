@@ -158,8 +158,25 @@ function setupBasicEditor() {
     document.getElementById('copy-btn').addEventListener('click', function() {
         // Get the formatted text with Unicode characters from the data attribute
         const formattedText = previewContent.getAttribute('data-formatted-text') || previewContent.textContent;
-        navigator.clipboard.writeText(formattedText)
-            .then(() => {
+        
+        // Create a temporary element to ensure the formatted content is preserved
+        const tempElement = document.createElement('div');
+        tempElement.style.position = 'absolute';
+        tempElement.style.left = '-9999px';
+        tempElement.innerHTML = formattedText;
+        document.body.appendChild(tempElement);
+        
+        // Use a different approach for clipboard copying to preserve formatting
+        // Creating a selection and copying the text with the formatting intact
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(tempElement);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
                 this.innerHTML = '<i class="bi bi-check2"></i> Copied!';
                 this.classList.add('btn-success');
                 
@@ -167,11 +184,32 @@ function setupBasicEditor() {
                     this.innerHTML = '<i class="bi bi-clipboard"></i> Copy text';
                     this.classList.remove('btn-success');
                 }, 2000);
-            })
-            .catch(err => {
-                console.error('Error copying text: ', err);
-                alert('Failed to copy text: ' + err);
-            });
+            } else {
+                throw new Error('Copy command was unsuccessful');
+            }
+        } catch (err) {
+            console.error('Error copying text: ', err);
+            
+            // Fallback to the Clipboard API if execCommand fails
+            navigator.clipboard.writeText(formattedText)
+                .then(() => {
+                    this.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+                    this.classList.add('btn-success');
+                    
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="bi bi-clipboard"></i> Copy text';
+                        this.classList.remove('btn-success');
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Clipboard API error: ', err);
+                    alert('Failed to copy text. Please try again or copy manually.');
+                });
+        } finally {
+            // Clean up
+            selection.removeAllRanges();
+            document.body.removeChild(tempElement);
+        }
     });
     
     // Placeholder functionality for other buttons
@@ -221,18 +259,25 @@ function setupBasicEditor() {
                 formattedTextDisplay.className = 'formatted-text-display mt-3 p-2 border border-primary rounded bg-light';
                 
                 // Create a formatted content with helpful hints about formatting
+                // Highlight the Unicode characters so users can see they're different
                 const formattedContent = data.formatted_text.replace(/\n/g, '<br>');
                 
                 formattedTextDisplay.innerHTML = `
                     <div class="small text-muted mb-1">LinkedIn Formatted Text (copy this):</div>
-                    <div class="formatted-content">${formattedContent}</div>
+                    <div class="formatted-content bg-white p-2 rounded border">${formattedContent}</div>
                     <div class="small text-muted mt-2">
                         <strong>Supported formats:</strong>
                         <ul class="mb-0 ps-3">
                             <li><strong>Bold:</strong> Use **text** or *text*</li>
                             <li><em>Italic:</em> Use _text_</li>
-                            <li>Bullet points: Start line with - or * </li>
+                            <li><span style="list-style-type: disc;">Bullet points:</span> Start line with - or * </li>
+                            <li><span>Numbered List:</span> Use ordered list button</li>
                         </ul>
+                    </div>
+                    <div class="small text-success mt-2">
+                        <i class="bi bi-info-circle"></i> 
+                        Text has been converted to special Unicode characters that LinkedIn will display correctly. 
+                        Just click "Copy text" and paste directly into LinkedIn.
                     </div>
                 `;
                 
