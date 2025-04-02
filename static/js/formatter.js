@@ -161,25 +161,9 @@ function setupBasicEditor() {
         
         // Process any special markers that our backend added for formatting
         
-        // Handle italic markers
-        // We need to replace these markers with actual italic text using HTML
-        // LinkedIn only accepts the italic formatting when it's actual HTML
-        const italicRegex = /<i-marker>(.*?)<\/i-marker>/g;
-        formattedText = formattedText.replace(italicRegex, '<i>$1</i>');
-        
-        // Handle bullet point markers
-        // Replace with proper HTML list for better copying to LinkedIn
-        const bulletRegex = /<bullet-marker>(.*?)<\/bullet-marker>/g;
-        formattedText = formattedText.replace(bulletRegex, '<span style="list-style-type: disc;">$1</span>');
-        
-        // Improve list formatting for LinkedIn
-        // Convert lines starting with bullets to proper list items
-        const bulletLineRegex = /^(\s*)• (.*)$/gm;
-        formattedText = formattedText.replace(bulletLineRegex, '<li>$2</li>');
-        
-        // Convert numbered list items
-        const numberedLineRegex = /^(\s*)(\d+)\. (.*)$/gm;
-        formattedText = formattedText.replace(numberedLineRegex, '<li>$3</li>');
+        // For the LinkedIn text formatter, we're now using Unicode characters
+        // for all formatting (bold, italic, bullets) which should paste correctly
+        // No additional processing needed here - the backend has done the work
         
         // Create a rich-text div that will be used for copying with formatting intact
         const richTextDiv = document.createElement('div');
@@ -300,11 +284,8 @@ function setupBasicEditor() {
                 // First, convert newlines to <br> tags
                 let processedContent = data.formatted_text.replace(/\n/g, '<br>');
                 
-                // Replace the italic markers with actual italic HTML for display
-                processedContent = processedContent.replace(/<i-marker>(.*?)<\/i-marker>/g, '<em>$1</em>');
-                
-                // Process bullet point markers for the display
-                processedContent = processedContent.replace(/<bullet-marker>(.*?)<\/bullet-marker>/g, '<span class="text-primary">$1</span>');
+                // No need to replace markers anymore since we're using actual 
+                // Unicode characters that already display correctly
                 
                 // Highlight bullet points for better visibility
                 processedContent = processedContent.replace(/^\s*•\s+/gm, '<span class="text-primary">• </span>');

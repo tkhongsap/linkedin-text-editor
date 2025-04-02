@@ -16,34 +16,29 @@ bold_map = {chr(ord('A') + i): chr(0x1D400 + i) for i in range(26)}  # Uppercase
 bold_map.update({chr(ord('a') + i): chr(0x1D41A + i) for i in range(26)})  # Lowercase
 bold_map.update({str(i): chr(0x1D7CE + i) for i in range(10)})  # Numbers
 
-# After testing, we've found that LinkedIn doesn't properly support Mathematical Italic Unicode
-# Instead, we'll mark the text for italic in a way that our copy function can handle specially
-italic_map = {}  # We'll handle italics differently
+# LinkedIn-compatible italic - we'll use Mathematical Sans-Serif Italic characters
+# These are in the U+1D608 to U+1D63B range for uppercase and lowercase
+italic_map = {chr(ord('A') + i): chr(0x1D608 + i) for i in range(26)}  # Uppercase italic
+italic_map.update({chr(ord('a') + i): chr(0x1D622 + i) for i in range(26)})  # Lowercase italic
+# Numbers in italic use sans-serif italic digits
+italic_map.update({str(i): chr(0x1D7E2 + i) for i in range(10)})  # Numbers in italic
 
-# For LinkedIn, we need to create a special mapping for each character
-# Since LinkedIn doesn't properly support the Mathematical Italic Unicode,
-# we'll mark text with special markers that our frontend will handle
-for i in range(26):
-    italic_map[chr(ord('A') + i)] = f"<i-marker>{chr(ord('A') + i)}</i-marker>"
-    italic_map[chr(ord('a') + i)] = f"<i-marker>{chr(ord('a') + i)}</i-marker>"
+# LinkedIn-compatible bullets
+# We'll use actual bullet characters that LinkedIn preserves
+bullet_list_prefix = "• "  # Standard bullet with space
 
-# Numbers in italic (special handling in frontend)
-for i in range(10):
-    italic_map[str(i)] = f"<i-marker>{i}</i-marker>"
-
-# Special characters for bullet points in LinkedIn
-# LinkedIn appears to only consistently preserve • as a bullet point character
+# Map of characters to replace with bullet points
 bullet_map = {
-    '•': '<bullet-marker>•</bullet-marker>',    # Standard bullet point (U+2022)
-    '○': '<bullet-marker>•</bullet-marker>',    # White bullet converted to standard (LinkedIn friendly)
-    '▪': '<bullet-marker>•</bullet-marker>',    # Black small square converted to standard
-    '■': '<bullet-marker>•</bullet-marker>',    # Black square converted to standard
-    '►': '<bullet-marker>•</bullet-marker>',    # Black right-pointing triangle converted to standard
-    '★': '<bullet-marker>•</bullet-marker>',    # Black star converted to standard
-    '✓': '<bullet-marker>•</bullet-marker>',    # Check mark converted to standard
-    '✔': '<bullet-marker>•</bullet-marker>',    # Heavy check mark converted to standard
-    '-': '<bullet-marker>•</bullet-marker>',    # Dash converted to standard bullet
-    '*': '<bullet-marker>•</bullet-marker>',    # Asterisk converted to standard bullet
+    '•': bullet_list_prefix,    # Standard bullet point (U+2022)
+    '○': bullet_list_prefix,    # White bullet
+    '▪': bullet_list_prefix,    # Black small square
+    '■': bullet_list_prefix,    # Black square
+    '►': bullet_list_prefix,    # Black right-pointing triangle
+    '★': bullet_list_prefix,    # Black star
+    '✓': bullet_list_prefix,    # Check mark
+    '✔': bullet_list_prefix,    # Heavy check mark
+    '-': bullet_list_prefix,    # Dash converted to bullet
+    '*': bullet_list_prefix,    # Asterisk converted to bullet
 }
 
 # Common punctuation and symbols to preserve in formatting
@@ -70,7 +65,7 @@ def parse_text(text):
     
     # Convert bullet lists properly
     def process_bullet_points(text):
-        # Process unordered list items from HTML
+        # Process unordered list items from HTML with our special bullet character
         text = re.sub(r'<li>(.*?)</li>', r'• \1\n', text)
         
         # Process bullet points at the start of lines (common in plain text)
@@ -90,6 +85,10 @@ def parse_text(text):
             numbered_list = '\n'.join([f"{i+1}. {item}" for i, item in enumerate(items)])
             # Replace the original <ol> content with the numbered list
             text = text.replace(f"<ol>{ol_content}</ol>", numbered_list)
+        
+        # Ensure each bullet point line starts with a space before the bullet
+        # This helps LinkedIn preserve the bullet formatting
+        text = re.sub(r'(^|\n)•', r'\1 •', text)
         
         return text
 
